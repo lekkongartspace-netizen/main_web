@@ -139,7 +139,7 @@ export default function ApplyClient({ userName, role }: Props) {
 
   const updateWorkHistory = (idx: number, key: string, val: string) => {
     const updated = [...form.workHistories];
-    (updated[idx] as Record<string, string>)[key] = val;
+    updated[idx] = { ...updated[idx], [key]: val };
     updateForm("workHistories", updated);
   };
 
@@ -156,7 +156,7 @@ export default function ApplyClient({ userName, role }: Props) {
 
   const updateEducation = (idx: number, key: string, val: string) => {
     const updated = [...form.educations];
-    (updated[idx] as Record<string, string>)[key] = val;
+    updated[idx] = { ...updated[idx], [key]: val };
     updateForm("educations", updated);
   };
 
@@ -173,7 +173,7 @@ export default function ApplyClient({ userName, role }: Props) {
 
   const updateEmergencyContact = (idx: number, key: string, val: string) => {
     const updated = [...form.emergencyContacts];
-    (updated[idx] as Record<string, string>)[key] = val;
+    updated[idx] = { ...updated[idx], [key]: val };
     updateForm("emergencyContacts", updated);
   };
 

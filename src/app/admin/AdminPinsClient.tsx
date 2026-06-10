@@ -73,7 +73,7 @@ export default function AdminPinsClient({ userName, role }: Props) {
 
   const updatePin = (idx: number, key: keyof Pin, val: string) => {
     const updated = [...pins];
-    (updated[idx] as Record<string, string>)[key] = val;
+    updated[idx] = { ...updated[idx], [key]: val };
     setPins(updated);
   };
 
