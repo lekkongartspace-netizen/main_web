@@ -128,7 +128,8 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
     const keys = [
       "prefixTh","firstNameTh","lastNameTh","prefixEn","firstNameEn","lastNameEn",
       "nickname","nationality","idCardNumber","birthDate","gender","maritalStatus",
-      "militaryStatus","phone","email","lineId","addressLine","subDistrict","district",
+      "militaryStatus","phone","email","lineId","facebook","instagram","tiktok",
+      "addressLine","subDistrict","district",
       "province","postalCode","skills","computerSkills","vehicleTypes","workAttitude",
       "strengthWeakness","expectedSalary","availableStartDate","howDidYouKnow",
     ];
@@ -234,6 +235,9 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
                 <InfoRow label="เบอร์โทรศัพท์" value={app.phone} />
                 <InfoRow label="อีเมล" value={app.email} />
                 <InfoRow label="Line ID" value={app.lineId} />
+                <InfoRow label="Facebook" value={app.facebook as string} />
+                <InfoRow label="Instagram" value={app.instagram as string} />
+                <InfoRow label="TikTok" value={app.tiktok as string} />
               </div>
 
               <SectionHeader icon="🏠" title="ที่อยู่" />
@@ -326,7 +330,100 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
                 </>
               )}
 
+  const handlePrint = () => {
+    const socials = [
+      app.phone && ("โทร: " + app.phone),
+      app.email && ("อีเมล: " + app.email),
+      app.lineId && ("Line: " + app.lineId),
+      (app.facebook as string) && ("Facebook: " + app.facebook),
+      (app.instagram as string) && ("IG: " + app.instagram),
+      (app.tiktok as string) && ("TikTok: " + app.tiktok),
+    ].filter(Boolean).join(" | ");
+
+    const eduHtml = educations && educations.length > 0
+      ? educations.map((e) => "<div style='margin-bottom:6px'><strong>" + (e.institution||"-") + "</strong><br/><span style='color:#666'>" + e.level + (e.field ? " · " + e.field : "") + (e.graduationYear ? " · จบ พ.ศ. " + e.graduationYear : "") + "</span></div>").join("")
+      : "<span style='color:#999'>ไม่มีข้อมูล</span>";
+
+    const workHtml = hasWork && workHistories && workHistories.length > 0
+      ? workHistories.map((w) => "<div style='margin-bottom:6px'><strong>" + (w.position||"-") + "</strong> — " + (w.company||"") + "<br/><span style='color:#666'>" + (w.startDate||"?") + " — " + (w.endDate||"ปัจจุบัน") + "</span>" + (w.description ? "<br/><span style='color:#555'>" + w.description + "</span>" : "") + "</div>").join("")
+      : "<span style='color:#999'>ไม่มีประสบการณ์</span>";
+
+    const ecHtml = emergencyContacts && emergencyContacts.length > 0
+      ? emergencyContacts.map((c) => "<div>" + (c.name||"-") + (c.relationship ? " (" + c.relationship + ")" : "") + (c.phone ? " — <strong style='color:#E31E24'>" + c.phone + "</strong>" : "") + "</div>").join("")
+      : "<span style='color:#999'>ไม่มีข้อมูล</span>";
+
+    const langHtml = languages && languages.length > 0
+      ? languages.map((l) => "<span style='background:#FEF2F2;color:#E31E24;padding:2px 10px;border-radius:6px;font-size:13px;margin-right:6px'>" + l + (languageLevels && languageLevels[l] ? " · " + languageLevels[l] : "") + "</span>").join("")
+      : "-";
+
+    const photoHtml = photoFileId
+      ? "<img src='" + driveImageUrl(photoFileId) + "' style='width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #FEF2F2' />"
+      : "";
+
+    const html = "<!DOCTYPE html><html><head><meta charset='utf-8'/><title>ใบสมัครงาน - " + (app.firstNameTh || "") + "</title><style>"
+      + "* { margin:0; padding:0; box-sizing:border-box; } "
+      + "body { font-family:'Sarabun','Segoe UI',sans-serif; color:#1f2937; font-size:14px; padding:0; } "
+      + ".header { background:#E31E24; color:white; padding:20px 32px; display:flex; justify-content:space-between; align-items:center; } "
+      + ".header h1 { font-size:18px; font-weight:700; } "
+      + ".header small { opacity:0.8; font-size:12px; } "
+      + ".body { padding:24px 32px; } "
+      + ".photo-row { text-align:center; margin-bottom:16px; } "
+      + ".name { text-align:center; margin-bottom:20px; } "
+      + ".name h2 { font-size:20px; font-weight:700; } "
+      + ".name p { color:#6b7280; font-size:13px; } "
+      + ".section { margin-top:18px; } "
+      + ".section-title { font-size:15px; font-weight:700; color:#E31E24; border-bottom:2px solid #E31E24; padding-bottom:4px; margin-bottom:10px; } "
+      + ".row { display:flex; padding:5px 0; border-bottom:1px solid #f3f4f6; } "
+      + ".row-label { width:160px; color:#6b7280; font-size:13px; flex-shrink:0; } "
+      + ".row-value { font-weight:500; } "
+      + ".footer { text-align:center; margin-top:30px; padding-top:16px; border-top:2px solid #E31E24; color:#9ca3af; font-size:11px; } "
+      + "@media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .header { background:#E31E24 !important; } } "
+      + "</style></head><body>"
+      + "<div class='header'><div><h1>ใบสมัครงาน</h1><small>Matching Wealth Co., Ltd.</small></div><div style='text-align:right'><small>" + formatDate(app.createdAt || app.submittedAt || "") + "</small></div></div>"
+      + "<div class='body'>"
+      + (photoHtml ? "<div class='photo-row'>" + photoHtml + "</div>" : "")
+      + "<div class='name'><h2>" + (app.prefixTh||"") + (app.firstNameTh||"") + " " + (app.lastNameTh||"") + "</h2>"
+      + ((app.firstNameEn||app.lastNameEn) ? "<p>" + (app.prefixEn||"") + " " + (app.firstNameEn||"") + " " + (app.lastNameEn||"") + "</p>" : "")
+      + (app.nickname ? "<p>ชื่อเล่น: " + app.nickname + "</p>" : "") + "</div>"
+      + "<div class='section'><div class='section-title'>ข้อมูลส่วนตัว</div>"
+      + "<div class='row'><div class='row-label'>สัญชาติ</div><div class='row-value'>" + (app.nationality||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>เลขบัตรประชาชน</div><div class='row-value'>" + (app.idCardNumber||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>วันเกิด</div><div class='row-value'>" + (app.birthDate||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>เพศ</div><div class='row-value'>" + (app.gender||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>สถานภาพ</div><div class='row-value'>" + (app.maritalStatus||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>สถานะทางทหาร</div><div class='row-value'>" + (app.militaryStatus||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>ช่องทางติดต่อ</div><div class='row-value' style='font-size:12px'>" + socials + "</div></div></div>"
+      + "<div class='section'><div class='section-title'>ที่อยู่</div><p>" + [app.addressLine, app.subDistrict, app.district, app.province, app.postalCode].filter(Boolean).join(" ") + "</p></div>"
+      + "<div class='section'><div class='section-title'>การศึกษา</div>" + eduHtml + "</div>"
+      + "<div class='section'><div class='section-title'>ประสบการณ์ทำงาน</div>" + workHtml + "</div>"
+      + "<div class='section'><div class='section-title'>ภาษา</div>" + langHtml + "</div>"
+      + "<div class='section'><div class='section-title'>ความสามารถ</div>"
+      + (app.skills ? "<div class='row'><div class='row-label'>ความสามารถพิเศษ</div><div class='row-value'>" + app.skills + "</div></div>" : "")
+      + (app.computerSkills ? "<div class='row'><div class='row-label'>คอมพิวเตอร์</div><div class='row-value'>" + app.computerSkills + "</div></div>" : "")
+      + "<div class='row'><div class='row-label'>ใบขับขี่</div><div class='row-value'>" + (hasDriving ? "มี" + (app.vehicleTypes ? " (" + app.vehicleTypes + ")" : "") : "ไม่มี") + "</div></div></div>"
+      + "<div class='section'><div class='section-title'>ทัศนคติและข้อมูลเพิ่มเติม</div>"
+      + (app.workAttitude ? "<div class='row'><div class='row-label'>ทัศนคติ</div><div class='row-value'>" + app.workAttitude + "</div></div>" : "")
+      + (app.strengthWeakness ? "<div class='row'><div class='row-label'>จุดแข็ง/จุดอ่อน</div><div class='row-value'>" + app.strengthWeakness + "</div></div>" : "")
+      + (app.expectedSalary ? "<div class='row'><div class='row-label'>เงินเดือนที่คาดหวัง</div><div class='row-value'>" + app.expectedSalary + " บาท</div></div>" : "")
+      + (app.availableStartDate ? "<div class='row'><div class='row-label'>เริ่มงานได้</div><div class='row-value'>" + app.availableStartDate + "</div></div>" : "")
+      + (app.howDidYouKnow ? "<div class='row'><div class='row-label'>ทราบข่าวจาก</div><div class='row-value'>" + app.howDidYouKnow + "</div></div>" : "") + "</div>"
+      + "<div class='section'><div class='section-title'>บุคคลอ้างอิง</div>" + ecHtml + "</div>"
+      + "<div class='footer'>MATCHING WEALTH CO., LTD.</div>"
+      + "</div></body></html>";
+
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      setTimeout(() => w.print(), 500);
+    }
+  };
+
               <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                <button onClick={handlePrint} className="btn-secondary flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                  พิมพ์ PDF
+                </button>
                 <button onClick={startEdit} className="btn-primary flex items-center justify-center gap-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   แก้ไข
@@ -380,6 +477,11 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
                   {editField("phone", "เบอร์โทรศัพท์")}
                   {editField("email", "อีเมล")}
                   {editField("lineId", "Line ID")}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {editField("facebook", "Facebook")}
+                  {editField("instagram", "Instagram")}
+                  {editField("tiktok", "TikTok")}
                 </div>
               </div>
 

@@ -82,7 +82,7 @@ export default function AdminPinsClient({ session }: Props) {
   };
 
   const addPin = () => {
-    setPins([...pins, { name: "", pin: "", role: "user" }]);
+    setPins([...pins, { name: "", pin: "", role: "user" as const }]);
   };
 
   const removePin = (idx: number) => {
@@ -91,7 +91,7 @@ export default function AdminPinsClient({ session }: Props) {
 
   const updatePin = (idx: number, key: keyof Pin, val: string) => {
     const updated = [...pins];
-    updated[idx] = { ...updated[idx], [key]: val };
+    updated[idx] = { ...updated[idx], [key]: key === "role" ? val as "admin" | "user" : val };
     setPins(updated);
   };
 

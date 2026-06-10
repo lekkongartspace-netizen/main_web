@@ -85,6 +85,9 @@ export default function ApplyClient({ session }: Props) {
     phone: "",
     email: "",
     lineId: "",
+    facebook: "",
+    instagram: "",
+    tiktok: "",
 
     addressLine: "",
     subDistrict: "",
@@ -192,12 +195,16 @@ export default function ApplyClient({ session }: Props) {
 
   const validateBeforeSubmit = (): string[] => {
     const errors: string[] = [];
+    if (!photoFile) errors.push("รูปถ่าย");
     if (!form.firstNameTh.trim()) errors.push("ชื่อ (ไทย)");
     if (!form.lastNameTh.trim()) errors.push("นามสกุล (ไทย)");
     if (!form.phone.trim()) errors.push("เบอร์โทรศัพท์");
     if (!form.birthDate) errors.push("วันเกิด");
     if (!form.addressLine.trim()) errors.push("ที่อยู่");
+    if (!form.subDistrict.trim()) errors.push("แขวง/ตำบล");
+    if (!form.district.trim()) errors.push("เขต/อำเภอ");
     if (!form.province.trim()) errors.push("จังหวัด");
+    if (!form.postalCode.trim()) errors.push("รหัสไปรษณีย์");
     if (form.educations.some((e) => !e.institution.trim())) errors.push("สถาบันการศึกษา");
     if (form.emergencyContacts.every((c) => !c.name.trim() || !c.phone.trim())) errors.push("บุคคลอ้างอิงอย่างน้อย 1 คน");
     return errors;
@@ -285,7 +292,7 @@ export default function ApplyClient({ session }: Props) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span className="text-xs text-gray-400 mt-1 block">รูปถ่าย</span>
+                    <span className="text-xs text-gray-400 mt-1 block">รูปถ่าย <span className="text-red-500">*</span></span>
                   </div>
                 )}
               </button>
@@ -385,6 +392,21 @@ export default function ApplyClient({ session }: Props) {
                 <input value={form.lineId} onChange={(e) => updateForm("lineId", e.target.value)} className="input-field" placeholder="Line ID" />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="label">Facebook</label>
+                <input value={form.facebook} onChange={(e) => updateForm("facebook", e.target.value)} className="input-field" placeholder="ชื่อ Facebook หรือลิงก์" />
+              </div>
+              <div>
+                <label className="label">Instagram</label>
+                <input value={form.instagram} onChange={(e) => updateForm("instagram", e.target.value)} className="input-field" placeholder="@username" />
+              </div>
+              <div>
+                <label className="label">TikTok</label>
+                <input value={form.tiktok} onChange={(e) => updateForm("tiktok", e.target.value)} className="input-field" placeholder="@username" />
+              </div>
+            </div>
           </div>
         );
 
@@ -397,11 +419,11 @@ export default function ApplyClient({ session }: Props) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">แขวง / ตำบล</label>
+                <label className="label">แขวง / ตำบล <span className="text-red-500">*</span></label>
                 <input value={form.subDistrict} onChange={(e) => updateForm("subDistrict", e.target.value)} className="input-field" />
               </div>
               <div>
-                <label className="label">เขต / อำเภอ</label>
+                <label className="label">เขต / อำเภอ <span className="text-red-500">*</span></label>
                 <input value={form.district} onChange={(e) => updateForm("district", e.target.value)} className="input-field" />
               </div>
             </div>
@@ -411,7 +433,7 @@ export default function ApplyClient({ session }: Props) {
                 <input value={form.province} onChange={(e) => updateForm("province", e.target.value)} className="input-field" />
               </div>
               <div>
-                <label className="label">รหัสไปรษณีย์</label>
+                <label className="label">รหัสไปรษณีย์ <span className="text-red-500">*</span></label>
                 <input value={form.postalCode} onChange={(e) => updateForm("postalCode", e.target.value)} className="input-field" maxLength={5} />
               </div>
             </div>
