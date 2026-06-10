@@ -9,6 +9,7 @@ import InactivityGuard from "@/components/InactivityGuard";
 interface Pin {
   name: string;
   pin: string;
+  role: "admin" | "user";
 }
 
 interface Props {
