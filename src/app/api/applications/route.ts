@@ -8,10 +8,7 @@ function isGoogleDriveReady(): boolean {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
   const key = process.env.GOOGLE_PRIVATE_KEY || "";
   const folder = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
-  if (!email || !key || !folder) return false;
-  if (email.includes("your-service") || email.includes("xxxx")) return false;
-  if (!key.includes("PRIVATE KEY")) return false;
-  return true;
+  return email.length > 5 && key.length > 50 && folder.length > 5;
 }
 
 export async function POST(req: NextRequest) {
@@ -47,39 +44,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!isGoogleDriveReady()) {
-      console.log("[MW] ใบสมัคร:", appId, "| Fields:", Object.keys(fields).length, "| Files:", fileEntries.length);
-      return NextResponse.json({ ok: true, id: appId });
-    }
+    const driveReady = isGoogleDriveReady();
 
-    try {
-      const gdrive = await import("@/lib/gdrive");
-      const fileIds: Record<string, string> = {};
-
-      for (const entry of fileEntries) {
-        const ext = entry.name.split(".").pop() || "bin";
-        const fileName = appId + "_" + entry.key + "." + ext;
-        const fileId = await gdrive.uploadFileFromBytes(fileName, entry.bytes, entry.type);
-        fileIds[entry.key] = fileId;
-      }
-
-      await gdrive.uploadJsonToDrive("application_" + appId + ".json", {
+    if (!driveReady) {
+      return NextResponse.json({
+        ok: true,
         id: appId,
-        submittedAt: timestamp,
-        ...fields,
-        files: fileIds,
+        warning: "Google Drive ยังไม่ได้ตั้งค่า ข้อมูลยังไม่ได้บันทึก",
       });
-    } catch (driveErr) {
-      console.error("[MW] Google Drive error (data logged only):", driveErr);
     }
+
+    const gdrive = await import("@/lib/gdrive");
+    const fileIds: Record<string, string> = {};
+
+    for (const entry of fileEntries) {
+      const ext = entry.name.split(".").pop() || "bin";
+      const fileName = appId + "_" + entry.key + "." + ext;
+      const fileId = await gdrive.uploadFileFromBytes(fileName, entry.bytes, entry.type);
+      fileIds[entry.key] = fileId;
+    }
+
+    await gdrive.uploadJsonToDrive("application_" + appId + ".json", {
+      id: appId,
+      submittedAt: timestamp,
+      ...fields,
+      files: fileIds,
+    });
 
     return NextResponse.json({ ok: true, id: appId });
   } catch (err) {
     console.error("[MW] Submit error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "เกิดข้อผิดพลาด" },
-      { status: 500 }
-    );
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: "Google Drive error: " + msg }, { status: 500 });
   }
 }
 
@@ -99,6 +95,7 @@ export async function GET() {
     return NextResponse.json(apps);
   } catch (err) {
     console.error("[MW] List error:", err);
-    return NextResponse.json([]);
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
