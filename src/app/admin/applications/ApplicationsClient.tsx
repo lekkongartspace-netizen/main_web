@@ -183,7 +183,7 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
     </div>
   );
 
-  const handlePrint = async () => {
+  const handlePrint = () => {
     const socials = [
       app.phone && ("โทร: " + app.phone),
       app.email && ("อีเมล: " + app.email),
@@ -264,42 +264,11 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       + "<div class='footer'>MATCHING WEALTH CO., LTD.</div>"
       + "</div></body></html>";
 
-    const container = document.createElement("div");
-    container.innerHTML = html;
-    container.style.position = "fixed";
-    container.style.left = "-9999px";
-    container.style.top = "0";
-    container.style.width = "210mm";
-    document.body.appendChild(container);
-
-    const loadScript = (src: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        if (document.querySelector("script[src='" + src + "']")) { resolve(); return; }
-        const s = document.createElement("script");
-        s.src = src;
-        s.onload = () => resolve();
-        s.onerror = () => reject();
-        document.head.appendChild(s);
-      });
-    };
-
-    try {
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js");
-      const html2pdf = (window as unknown as Record<string, unknown>).html2pdf;
-      if (typeof html2pdf === "function") {
-        await (html2pdf as Function)(container.querySelector("body") || container, {
-          margin: 0,
-          filename: "ใบสมัคร_" + (app.firstNameTh || "") + "_" + (app.lastNameTh || "") + ".pdf",
-          image: { type: "jpeg", quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        });
-      }
-    } catch {
-      const w = window.open("", "_blank");
-      if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
-    } finally {
-      document.body.removeChild(container);
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+      w.onload = () => setTimeout(() => w.print(), 300);
     }
   };
 
