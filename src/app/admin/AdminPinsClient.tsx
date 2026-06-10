@@ -82,7 +82,8 @@ export default function AdminPinsClient({ session }: Props) {
   };
 
   const addPin = () => {
-    setPins([...pins, { name: "", pin: "", role: "user" as const }]);
+    const newPin: Pin = { name: "", pin: "", role: "user" };
+    setPins([...pins, newPin]);
   };
 
   const removePin = (idx: number) => {
