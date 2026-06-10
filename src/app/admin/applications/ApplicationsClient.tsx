@@ -210,7 +210,7 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       : "-";
 
     const photoHtml = photoFileId
-      ? "<img src='" + driveImageUrl(photoFileId) + "' style='width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #FEF2F2' />"
+      ? "<img src='" + driveImageUrl(photoFileId) + "' style='width:100px;height:100px;border-radius:8px;object-fit:cover;border:3px solid #FEF2F2' />"
       : "";
 
     const html = "<!DOCTYPE html><html><head><meta charset='utf-8'/><title>ใบสมัครงาน - " + (app.firstNameTh || "") + "</title><style>"
@@ -264,11 +264,42 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       + "<div class='footer'>MATCHING WEALTH CO., LTD.</div>"
       + "</div></body></html>";
 
-    const w = window.open("", "_blank");
-    if (w) {
-      w.document.write(html);
-      w.document.close();
-      setTimeout(() => w.print(), 500);
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    container.style.position = "fixed";
+    container.style.left = "-9999px";
+    container.style.top = "0";
+    container.style.width = "210mm";
+    document.body.appendChild(container);
+
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector("script[src='" + src + "']")) { resolve(); return; }
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject();
+        document.head.appendChild(s);
+      });
+    };
+
+    try {
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js");
+      const html2pdf = (window as unknown as Record<string, unknown>).html2pdf;
+      if (typeof html2pdf === "function") {
+        await (html2pdf as Function)(container.querySelector("body") || container, {
+          margin: 0,
+          filename: "ใบสมัคร_" + (app.firstNameTh || "") + "_" + (app.lastNameTh || "") + ".pdf",
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        });
+      }
+    } catch {
+      const w = window.open("", "_blank");
+      if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 500); }
+    } finally {
+      document.body.removeChild(container);
     }
   };
 
@@ -301,7 +332,7 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
             <>
               {photoFileId && (
                 <div className="flex justify-center mb-4">
-                  <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-brand-light shadow-md">
+                  <div className="w-28 h-28 rounded-xl overflow-hidden border-4 border-brand-light shadow-md">
                     <img src={driveImageUrl(photoFileId)} alt="รูปถ่าย" className="w-full h-full object-cover" />
                   </div>
                 </div>

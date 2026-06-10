@@ -17,6 +17,7 @@ interface WorkHistory {
   startDate: string;
   endDate: string;
   description: string;
+  reasonForLeaving: string;
 }
 
 interface Education {
@@ -57,10 +58,9 @@ const STEPS = [
 
 export default function ApplyClient({ session }: Props) {
   const [step, setStep] = useState(0);
-  const [maxStep, setMaxStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<{ label: string; step: number }[]>([]);
   const photoRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLInputElement>(null);
 
@@ -138,7 +138,7 @@ export default function ApplyClient({ session }: Props) {
   const addWorkHistory = () => {
     updateForm("workHistories", [
       ...form.workHistories,
-      { company: "", position: "", startDate: "", endDate: "", description: "" },
+      { company: "", position: "", startDate: "", endDate: "", description: "", reasonForLeaving: "" },
     ]);
   };
 
@@ -193,31 +193,34 @@ export default function ApplyClient({ session }: Props) {
     updateForm("languages", langs);
   };
 
-  const validateBeforeSubmit = (): string[] => {
-    const errors: string[] = [];
-    if (!photoFile) errors.push("รูปถ่าย");
-    if (!form.firstNameTh.trim()) errors.push("ชื่อ (ไทย)");
-    if (!form.lastNameTh.trim()) errors.push("นามสกุล (ไทย)");
-    if (!form.phone.trim()) errors.push("เบอร์โทรศัพท์");
-    if (!form.birthDate) errors.push("วันเกิด");
-    if (!form.addressLine.trim()) errors.push("ที่อยู่");
-    if (!form.subDistrict.trim()) errors.push("แขวง/ตำบล");
-    if (!form.district.trim()) errors.push("เขต/อำเภอ");
-    if (!form.province.trim()) errors.push("จังหวัด");
-    if (!form.postalCode.trim()) errors.push("รหัสไปรษณีย์");
-    if (form.educations.some((e) => !e.institution.trim())) errors.push("สถาบันการศึกษา");
-    if (form.emergencyContacts.every((c) => !c.name.trim() || !c.phone.trim())) errors.push("บุคคลอ้างอิงอย่างน้อย 1 คน");
+  const validateBeforeSubmit = (): { label: string; step: number }[] => {
+    const errors: { label: string; step: number }[] = [];
+    if (!photoFile) errors.push({ label: "รูปถ่าย", step: 0 });
+    if (!form.firstNameTh.trim()) errors.push({ label: "ชื่อ (ไทย)", step: 0 });
+    if (!form.lastNameTh.trim()) errors.push({ label: "นามสกุล (ไทย)", step: 0 });
+    if (!form.phone.trim()) errors.push({ label: "เบอร์โทรศัพท์", step: 0 });
+    if (!form.birthDate) errors.push({ label: "วันเกิด", step: 0 });
+    if (!form.addressLine.trim()) errors.push({ label: "ที่อยู่", step: 1 });
+    if (!form.subDistrict.trim()) errors.push({ label: "แขวง/ตำบล", step: 1 });
+    if (!form.district.trim()) errors.push({ label: "เขต/อำเภอ", step: 1 });
+    if (!form.province.trim()) errors.push({ label: "จังหวัด", step: 1 });
+    if (!form.postalCode.trim()) errors.push({ label: "รหัสไปรษณีย์", step: 1 });
+    if (form.educations.some((e) => !e.institution.trim())) errors.push({ label: "สถาบันการศึกษา", step: 2 });
+    if (form.emergencyContacts.every((c) => !c.name.trim() || !c.phone.trim())) errors.push({ label: "บุคคลอ้างอิงอย่างน้อย 1 คน", step: 5 });
     return errors;
   };
 
+  const goToStep = (s: number) => {
+    setStep(s);
+    setValidationErrors([]);
+  };
+
   const goNext = () => {
-    const next = step + 1;
-    setStep(next);
-    if (next > maxStep) setMaxStep(next);
+    goToStep(step + 1);
   };
 
   const goBack = () => {
-    setStep(Math.max(0, step - 1));
+    goToStep(Math.max(0, step - 1));
   };
 
   const handleSubmit = async () => {
@@ -297,6 +300,7 @@ export default function ApplyClient({ session }: Props) {
                 )}
               </button>
               <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              <p className="text-xs text-gray-400 mt-2 text-center">กรุณาใช้รูปหน้าตรง เป็นทางการ เห็นใบหน้าชัดเจน</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -514,6 +518,10 @@ export default function ApplyClient({ session }: Props) {
                       <label className="label">รายละเอียดงาน</label>
                       <textarea value={wh.description} onChange={(e) => updateWorkHistory(idx, "description", e.target.value)} className="input-field" rows={3} placeholder="อธิบายลักษณะงานที่ทำ" />
                     </div>
+                    <div className="mt-4">
+                      <label className="label">เหตุผลที่เปลี่ยนงาน</label>
+                      <input value={wh.reasonForLeaving} onChange={(e) => updateWorkHistory(idx, "reasonForLeaving", e.target.value)} className="input-field" placeholder="เช่น ต้องการความก้าวหน้า, สัญญาหมดอายุ" />
+                    </div>
                   </div>
                 ))}
                 <button type="button" onClick={addWorkHistory} className="btn-secondary w-full">+ เพิ่มประสบการณ์</button>
@@ -678,7 +686,11 @@ export default function ApplyClient({ session }: Props) {
                 <p className="font-semibold mb-1">กรุณากรอกข้อมูลให้ครบก่อนส่ง:</p>
                 <ul className="list-disc list-inside space-y-0.5">
                   {validationErrors.map((err, i) => (
-                    <li key={i}>{err}</li>
+                    <li key={i}>
+                      <button type="button" onClick={() => goToStep(err.step)} className="underline hover:text-red-900 transition-colors">
+                        {err.label}
+                      </button>
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -720,27 +732,19 @@ export default function ApplyClient({ session }: Props) {
           <p className="text-gray-500 mt-1">กรอกข้อมูลให้ครบถ้วนเพื่อสมัครงานกับ Matching Wealth</p>
         </div>
 
-        <div className="mb-8 overflow-x-auto">
-          <div className="flex gap-1 min-w-max">
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-1.5 justify-center">
             {STEPS.map((s, i) => (
               <button
                 key={i}
                 type="button"
-                onClick={() => { if (i <= maxStep) setStep(i); }}
-                disabled={i > maxStep}
+                onClick={() => goToStep(i)}
                 className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                   i === step
                     ? "bg-brand-red text-white shadow-sm"
-                    : i <= maxStep
-                    ? "bg-green-50 text-green-700 cursor-pointer hover:bg-green-100"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                {i < step && (
-                  <svg className="w-3.5 h-3.5 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
                 {s}
               </button>
             ))}
