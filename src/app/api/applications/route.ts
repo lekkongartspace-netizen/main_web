@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   try {
     const hasGoogleConfig =
@@ -36,7 +38,8 @@ export async function POST(req: NextRequest) {
 
     for (const [key, value] of formData.entries()) {
       if (value instanceof File && value.size > 0) {
-        const buffer = Buffer.from(await value.arrayBuffer());
+        const arrayBuffer = await value.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
         const ext = value.name.split(".").pop() || "bin";
         const fileName = appId + "_" + key + "." + ext;
         const fileId = await uploadFileToDrive(fileName, buffer, value.type);
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Application submit error:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: "ไม่สามารถส่งใบสมัครได้: " + message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

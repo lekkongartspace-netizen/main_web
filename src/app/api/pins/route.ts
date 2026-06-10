@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getPins, savePins } from "@/lib/github";
 
+export const runtime = "nodejs";
+
 export async function GET() {
   const session = await getSession();
   if (!session || session.role !== "admin") {

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyPin } from "@/lib/github";
 import { setSession } from "@/lib/auth";
 
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   try {
     const { pin } = await req.json();

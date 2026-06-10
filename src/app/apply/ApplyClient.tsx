@@ -702,14 +702,17 @@ export default function ApplyClient({ userName, role }: Props) {
         <div className="mb-8 overflow-x-auto">
           <div className="flex gap-1 min-w-max">
             {STEPS.map((s, i) => (
-              <div
+              <button
                 key={i}
-                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap select-none ${
+                type="button"
+                onClick={() => { if (i <= maxStep) setStep(i); }}
+                disabled={i > maxStep}
+                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
                   i === step
                     ? "bg-brand-red text-white shadow-sm"
                     : i <= maxStep
-                    ? "bg-green-50 text-green-700"
-                    : "bg-gray-100 text-gray-400"
+                    ? "bg-green-50 text-green-700 cursor-pointer hover:bg-green-100"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
                 }`}
               >
                 {i < step && (
@@ -718,7 +721,7 @@ export default function ApplyClient({ userName, role }: Props) {
                   </svg>
                 )}
                 {s}
-              </div>
+              </button>
             ))}
           </div>
         </div>
