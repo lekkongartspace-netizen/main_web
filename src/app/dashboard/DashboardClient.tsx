@@ -1,6 +1,7 @@
 "use client";
 
 import Navbar from "@/components/Navbar";
+import InactivityGuard from "@/components/InactivityGuard";
 
 interface Props {
   userName: string;
@@ -28,6 +29,7 @@ export default function DashboardClient({ userName, role }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar userName={userName} role={role} />
+      <InactivityGuard />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="slide-up">

@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Toggle from "@/components/Toggle";
 import FlatpickrInput from "@/components/FlatpickrInput";
 import SaveOverlay from "@/components/SaveOverlay";
+import InactivityGuard from "@/components/InactivityGuard";
 
 interface Props {
   userName: string;
@@ -57,8 +58,10 @@ const STEPS = [
 
 export default function ApplyClient({ userName, role }: Props) {
   const [step, setStep] = useState(0);
+  const [maxStep, setMaxStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const photoRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLInputElement>(null);
 
@@ -188,7 +191,37 @@ export default function ApplyClient({ userName, role }: Props) {
     updateForm("languages", langs);
   };
 
+  const validateBeforeSubmit = (): string[] => {
+    const errors: string[] = [];
+    if (!form.firstNameTh.trim()) errors.push("ชื่อ (ไทย)");
+    if (!form.lastNameTh.trim()) errors.push("นามสกุล (ไทย)");
+    if (!form.phone.trim()) errors.push("เบอร์โทรศัพท์");
+    if (!form.birthDate) errors.push("วันเกิด");
+    if (!form.addressLine.trim()) errors.push("ที่อยู่");
+    if (!form.province.trim()) errors.push("จังหวัด");
+    if (form.educations.some((e) => !e.institution.trim())) errors.push("สถาบันการศึกษา");
+    if (form.emergencyContacts.every((c) => !c.name.trim() || !c.phone.trim())) errors.push("บุคคลอ้างอิงอย่างน้อย 1 คน");
+    return errors;
+  };
+
+  const goNext = () => {
+    const next = step + 1;
+    setStep(next);
+    if (next > maxStep) setMaxStep(next);
+  };
+
+  const goBack = () => {
+    setStep(Math.max(0, step - 1));
+  };
+
   const handleSubmit = async () => {
+    const errors = validateBeforeSubmit();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors([]);
+
     setSaving(true);
     try {
       const fd = new FormData();
@@ -205,11 +238,12 @@ export default function ApplyClient({ userName, role }: Props) {
       if (resumeFile) fd.append("resume", resumeFile);
 
       const res = await fetch("/api/applications", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Submit failed");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Submit failed");
       setSubmitted(true);
     } catch (err) {
-      console.error(err);
-      alert("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง");
+      const msg = err instanceof Error ? err.message : "เกิดข้อผิดพลาด";
+      alert("ไม่สามารถส่งใบสมัครได้: " + msg);
     } finally {
       setSaving(false);
     }
@@ -263,17 +297,15 @@ export default function ApplyClient({ userName, role }: Props) {
               <div>
                 <label className="label">คำนำหน้า (ไทย)</label>
                 <select value={form.prefixTh} onChange={(e) => updateForm("prefixTh", e.target.value)} className="input-field">
-                  <option>นาย</option>
-                  <option>นาง</option>
-                  <option>นางสาว</option>
+                  <option>นาย</option><option>นาง</option><option>นางสาว</option>
                 </select>
               </div>
               <div>
-                <label className="label">ชื่อ (ไทย)</label>
+                <label className="label">ชื่อ (ไทย) <span className="text-red-500">*</span></label>
                 <input value={form.firstNameTh} onChange={(e) => updateForm("firstNameTh", e.target.value)} className="input-field" placeholder="ชื่อจริง" />
               </div>
               <div>
-                <label className="label">นามสกุล (ไทย)</label>
+                <label className="label">นามสกุล (ไทย) <span className="text-red-500">*</span></label>
                 <input value={form.lastNameTh} onChange={(e) => updateForm("lastNameTh", e.target.value)} className="input-field" placeholder="นามสกุล" />
               </div>
             </div>
@@ -282,9 +314,7 @@ export default function ApplyClient({ userName, role }: Props) {
               <div>
                 <label className="label">Prefix (EN)</label>
                 <select value={form.prefixEn} onChange={(e) => updateForm("prefixEn", e.target.value)} className="input-field">
-                  <option>Mr.</option>
-                  <option>Mrs.</option>
-                  <option>Ms.</option>
+                  <option>Mr.</option><option>Mrs.</option><option>Ms.</option>
                 </select>
               </div>
               <div>
@@ -316,7 +346,7 @@ export default function ApplyClient({ userName, role }: Props) {
                 <input value={form.idCardNumber} onChange={(e) => updateForm("idCardNumber", e.target.value)} className="input-field" placeholder="x-xxxx-xxxxx-xx-x" maxLength={17} />
               </div>
               <div>
-                <label className="label">วันเกิด</label>
+                <label className="label">วันเกิด <span className="text-red-500">*</span></label>
                 <FlatpickrInput value={form.birthDate} onChange={(val) => updateForm("birthDate", val)} placeholder="เลือกวันเกิด" />
               </div>
             </div>
@@ -325,33 +355,26 @@ export default function ApplyClient({ userName, role }: Props) {
               <div>
                 <label className="label">เพศ</label>
                 <select value={form.gender} onChange={(e) => updateForm("gender", e.target.value)} className="input-field">
-                  <option>ชาย</option>
-                  <option>หญิง</option>
-                  <option>อื่น ๆ</option>
+                  <option>ชาย</option><option>หญิง</option><option>อื่น ๆ</option>
                 </select>
               </div>
               <div>
                 <label className="label">สถานภาพ</label>
                 <select value={form.maritalStatus} onChange={(e) => updateForm("maritalStatus", e.target.value)} className="input-field">
-                  <option>โสด</option>
-                  <option>สมรส</option>
-                  <option>หม้าย</option>
-                  <option>หย่า</option>
+                  <option>โสด</option><option>สมรส</option><option>หม้าย</option><option>หย่า</option>
                 </select>
               </div>
               <div>
                 <label className="label">สถานะทางทหาร</label>
                 <select value={form.militaryStatus} onChange={(e) => updateForm("militaryStatus", e.target.value)} className="input-field">
-                  <option>ได้รับการยกเว้น</option>
-                  <option>ผ่านการเกณฑ์ทหาร</option>
-                  <option>ยังไม่ได้เกณฑ์</option>
+                  <option>ได้รับการยกเว้น</option><option>ผ่านการเกณฑ์ทหาร</option><option>ยังไม่ได้เกณฑ์</option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="label">เบอร์โทรศัพท์</label>
+                <label className="label">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
                 <input value={form.phone} onChange={(e) => updateForm("phone", e.target.value)} className="input-field" placeholder="0xx-xxx-xxxx" />
               </div>
               <div>
@@ -370,7 +393,7 @@ export default function ApplyClient({ userName, role }: Props) {
         return (
           <div className="space-y-4 fade-in">
             <div>
-              <label className="label">ที่อยู่</label>
+              <label className="label">ที่อยู่ <span className="text-red-500">*</span></label>
               <input value={form.addressLine} onChange={(e) => updateForm("addressLine", e.target.value)} className="input-field" placeholder="บ้านเลขที่ ซอย ถนน" />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -385,7 +408,7 @@ export default function ApplyClient({ userName, role }: Props) {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="label">จังหวัด</label>
+                <label className="label">จังหวัด <span className="text-red-500">*</span></label>
                 <input value={form.province} onChange={(e) => updateForm("province", e.target.value)} className="input-field" />
               </div>
               <div>
@@ -415,7 +438,7 @@ export default function ApplyClient({ userName, role }: Props) {
                     </select>
                   </div>
                   <div>
-                    <label className="label">สถาบัน</label>
+                    <label className="label">สถาบัน <span className="text-red-500">*</span></label>
                     <input value={edu.institution} onChange={(e) => updateEducation(idx, "institution", e.target.value)} className="input-field" placeholder="ชื่อสถาบัน" />
                   </div>
                   <div>
@@ -515,11 +538,7 @@ export default function ApplyClient({ userName, role }: Props) {
                       }}
                       className="input-field flex-1"
                     >
-                      <option>พื้นฐาน</option>
-                      <option>พอใช้</option>
-                      <option>ดี</option>
-                      <option>ดีมาก</option>
-                      <option>เชี่ยวชาญ</option>
+                      <option>พื้นฐาน</option><option>พอใช้</option><option>ดี</option><option>ดีมาก</option><option>เชี่ยวชาญ</option>
                     </select>
                   </div>
                 ))}
@@ -530,12 +549,10 @@ export default function ApplyClient({ userName, role }: Props) {
               <label className="label">ความสามารถพิเศษ</label>
               <textarea value={form.skills} onChange={(e) => updateForm("skills", e.target.value)} className="input-field" rows={3} placeholder="เช่น ทำอาหาร, ช่างไฟ, เชื่อมโลหะ, ขับรถ" />
             </div>
-
             <div>
               <label className="label">ทักษะคอมพิวเตอร์</label>
               <textarea value={form.computerSkills} onChange={(e) => updateForm("computerSkills", e.target.value)} className="input-field" rows={2} placeholder="เช่น Microsoft Office, AutoCAD, Photoshop" />
             </div>
-
             <div className="flex items-center gap-4">
               <Toggle checked={form.drivingLicense} onChange={(val) => updateForm("drivingLicense", val)} label="มีใบขับขี่" />
             </div>
@@ -545,17 +562,14 @@ export default function ApplyClient({ userName, role }: Props) {
                 <input value={form.vehicleTypes} onChange={(e) => updateForm("vehicleTypes", e.target.value)} className="input-field" placeholder="เช่น รถยนต์, รถจักรยานยนต์" />
               </div>
             )}
-
             <div>
               <label className="label">ทัศนคติในการทำงาน</label>
               <textarea value={form.workAttitude} onChange={(e) => updateForm("workAttitude", e.target.value)} className="input-field" rows={3} placeholder="บอกเล่าทัศนคติและแนวคิดในการทำงานของคุณ" />
             </div>
-
             <div>
               <label className="label">จุดแข็งและจุดอ่อน</label>
               <textarea value={form.strengthWeakness} onChange={(e) => updateForm("strengthWeakness", e.target.value)} className="input-field" rows={3} placeholder="บอกจุดแข็งและจุดอ่อนของคุณ" />
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">เงินเดือนที่คาดหวัง (บาท)</label>
@@ -566,7 +580,6 @@ export default function ApplyClient({ userName, role }: Props) {
                 <FlatpickrInput value={form.availableStartDate} onChange={(val) => updateForm("availableStartDate", val)} placeholder="เลือกวันที่" />
               </div>
             </div>
-
             <div>
               <label className="label">ทราบข่าวการรับสมัครจากที่ไหน</label>
               <input value={form.howDidYouKnow} onChange={(e) => updateForm("howDidYouKnow", e.target.value)} className="input-field" placeholder="เช่น Facebook, เพื่อนแนะนำ, เว็บไซต์" />
@@ -587,7 +600,7 @@ export default function ApplyClient({ userName, role }: Props) {
                 <h4 className="text-sm font-semibold text-gray-500 mb-4">บุคคลอ้างอิงที่ {idx + 1}</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="label">ชื่อ-นามสกุล</label>
+                    <label className="label">ชื่อ-นามสกุล <span className="text-red-500">*</span></label>
                     <input value={ec.name} onChange={(e) => updateEmergencyContact(idx, "name", e.target.value)} className="input-field" />
                   </div>
                   <div>
@@ -595,7 +608,7 @@ export default function ApplyClient({ userName, role }: Props) {
                     <input value={ec.relationship} onChange={(e) => updateEmergencyContact(idx, "relationship", e.target.value)} className="input-field" placeholder="เช่น บิดา, มารดา" />
                   </div>
                   <div>
-                    <label className="label">เบอร์โทรศัพท์</label>
+                    <label className="label">เบอร์โทรศัพท์ <span className="text-red-500">*</span></label>
                     <input value={ec.phone} onChange={(e) => updateEmergencyContact(idx, "phone", e.target.value)} className="input-field" />
                   </div>
                 </div>
@@ -639,6 +652,16 @@ export default function ApplyClient({ userName, role }: Props) {
       case 7:
         return (
           <div className="space-y-4 fade-in">
+            {validationErrors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <p className="font-semibold mb-1">กรุณากรอกข้อมูลให้ครบก่อนส่ง:</p>
+                <ul className="list-disc list-inside space-y-0.5">
+                  {validationErrors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="card bg-brand-light border-brand-red/20">
               <h3 className="font-bold text-brand-red mb-3">ตรวจสอบข้อมูลก่อนส่ง</h3>
               <div className="space-y-2 text-sm">
@@ -667,6 +690,7 @@ export default function ApplyClient({ userName, role }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar userName={userName} role={role} />
+      <InactivityGuard />
       {saving && <SaveOverlay message="กำลังส่งใบสมัคร..." />}
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -678,15 +702,14 @@ export default function ApplyClient({ userName, role }: Props) {
         <div className="mb-8 overflow-x-auto">
           <div className="flex gap-1 min-w-max">
             {STEPS.map((s, i) => (
-              <button
+              <div
                 key={i}
-                onClick={() => setStep(i)}
-                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
+                className={`px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap select-none ${
                   i === step
                     ? "bg-brand-red text-white shadow-sm"
-                    : i < step
+                    : i <= maxStep
                     ? "bg-green-50 text-green-700"
-                    : "bg-gray-100 text-gray-500"
+                    : "bg-gray-100 text-gray-400"
                 }`}
               >
                 {i < step && (
@@ -695,7 +718,7 @@ export default function ApplyClient({ userName, role }: Props) {
                   </svg>
                 )}
                 {s}
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -713,7 +736,7 @@ export default function ApplyClient({ userName, role }: Props) {
         <div className="flex justify-between gap-4">
           <button
             type="button"
-            onClick={() => setStep(Math.max(0, step - 1))}
+            onClick={goBack}
             disabled={step === 0}
             className="btn-ghost disabled:opacity-30"
           >
@@ -721,7 +744,7 @@ export default function ApplyClient({ userName, role }: Props) {
           </button>
 
           {step < STEPS.length - 1 ? (
-            <button type="button" onClick={() => setStep(step + 1)} className="btn-primary">
+            <button type="button" onClick={goNext} className="btn-primary">
               ถัดไป →
             </button>
           ) : (

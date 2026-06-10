@@ -68,24 +68,31 @@ export default function PinInput({ length = 6, onComplete, disabled, error }: Pi
     <div>
       <div className="flex gap-2 sm:gap-3 justify-center">
         {values.map((val, i) => (
-          <input
-            key={i}
-            ref={(el) => { refs.current[i] = el; }}
-            type="text"
-            inputMode="numeric"
-            maxLength={length}
-            value={val}
-            disabled={disabled}
-            onChange={(e) => handleChange(i, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(i, e)}
-            onFocus={(e) => e.target.select()}
-            className={`
-              w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-xl border-2
-              outline-none transition-all duration-200
-              ${error ? "border-red-400 bg-red-50 shake" : "border-gray-200 focus:border-brand-red focus:ring-2 focus:ring-brand-red/20"}
-              ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-            `}
-          />
+          <div key={i} className="relative">
+            <input
+              ref={(el) => { refs.current[i] = el; }}
+              type="text"
+              inputMode="numeric"
+              maxLength={length}
+              value={val}
+              disabled={disabled}
+              onChange={(e) => handleChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              onFocus={(e) => e.target.select()}
+              className={`
+                w-11 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-bold rounded-xl border-2
+                outline-none transition-all duration-200 text-transparent caret-transparent
+                ${error ? "border-red-400 bg-red-50" : "border-gray-200 focus:border-brand-red focus:ring-2 focus:ring-brand-red/20"}
+                ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+              `}
+              style={{ WebkitTextSecurity: "none" } as React.CSSProperties}
+            />
+            {val && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className={`w-3 h-3 rounded-full ${error ? "bg-red-400" : "bg-gray-800"}`} />
+              </div>
+            )}
+          </div>
         ))}
       </div>
       {error && (

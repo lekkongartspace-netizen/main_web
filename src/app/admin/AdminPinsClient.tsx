@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Navbar from "@/components/Navbar";
-import Toggle from "@/components/Toggle";
 import Spinner from "@/components/Spinner";
 import SaveOverlay from "@/components/SaveOverlay";
+import InactivityGuard from "@/components/InactivityGuard";
 
 interface Pin {
   name: string;
@@ -19,14 +19,32 @@ interface Props {
 
 export default function AdminPinsClient({ userName, role }: Props) {
   const [pins, setPins] = useState<Pin[]>([]);
+  const [originalPins, setOriginalPins] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const isDirty = JSON.stringify(pins) !== originalPins;
+
   useEffect(() => {
     loadPins();
   }, []);
+
+  const handleBeforeUnload = useCallback(
+    (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    },
+    [isDirty]
+  );
+
+  useEffect(() => {
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [handleBeforeUnload]);
 
   const loadPins = async () => {
     setLoading(true);
@@ -35,6 +53,7 @@ export default function AdminPinsClient({ userName, role }: Props) {
       if (!res.ok) throw new Error("Failed to load");
       const data = await res.json();
       setPins(data);
+      setOriginalPins(JSON.stringify(data));
     } catch {
       setError("ไม่สามารถโหลดข้อมูลได้");
     } finally {
@@ -54,6 +73,7 @@ export default function AdminPinsClient({ userName, role }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      setOriginalPins(JSON.stringify(pins));
       setSuccess("บันทึกสำเร็จ");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -80,6 +100,7 @@ export default function AdminPinsClient({ userName, role }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar userName={userName} role={role} />
+      <InactivityGuard />
       {saving && <SaveOverlay />}
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
@@ -90,6 +111,15 @@ export default function AdminPinsClient({ userName, role }: Props) {
           </div>
           <button onClick={addPin} className="btn-primary">+ เพิ่ม PIN</button>
         </div>
+
+        {isDirty && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 fade-in text-sm flex items-center justify-between gap-4">
+            <span>⚠️ การเปลี่ยนแปลงยังไม่ได้บันทึก</span>
+            <button onClick={handleSave} className="btn-primary text-sm px-4 py-1.5">
+              บันทึก
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg mb-6 fade-in text-sm">
@@ -128,12 +158,16 @@ export default function AdminPinsClient({ userName, role }: Props) {
                     maxLength={8}
                   />
                 </div>
-                <div className="w-full sm:w-auto pb-0.5">
-                  <Toggle
-                    checked={p.role === "admin"}
-                    onChange={(val) => updatePin(idx, "role", val ? "admin" : "user")}
-                    label={p.role === "admin" ? "Admin" : "User"}
-                  />
+                <div className="w-full sm:w-36">
+                  <label className="label">สิทธิ์</label>
+                  <select
+                    value={p.role}
+                    onChange={(e) => updatePin(idx, "role", e.target.value)}
+                    className="input-field"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
+                  </select>
                 </div>
                 <button
                   type="button"
