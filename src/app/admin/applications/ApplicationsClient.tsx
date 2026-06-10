@@ -214,26 +214,32 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       : "";
 
     const html = "<!DOCTYPE html><html><head><meta charset='utf-8'/><title>ใบสมัครงาน - " + (app.firstNameTh || "") + "</title><style>"
+      + "@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); "
       + "* { margin:0; padding:0; box-sizing:border-box; } "
-      + "body { font-family:'Sarabun','Segoe UI',sans-serif; color:#1f2937; font-size:14px; padding:0; } "
+      + "html { background:#e5e7eb; } "
+      + "body { font-family:'Sarabun','Segoe UI',sans-serif; color:#1f2937; font-size:14px; } "
+      + ".page { width:210mm; min-height:297mm; margin:20px auto; background:white; box-shadow:0 4px 24px rgba(0,0,0,0.12); } "
       + ".header { background:#E31E24; color:white; padding:20px 32px; display:flex; justify-content:space-between; align-items:center; } "
       + ".header h1 { font-size:18px; font-weight:700; } "
       + ".header small { opacity:0.8; font-size:12px; } "
-      + ".body { padding:24px 32px; } "
+      + ".content { padding:28px 36px; } "
       + ".photo-row { text-align:center; margin-bottom:16px; } "
-      + ".name { text-align:center; margin-bottom:20px; } "
+      + ".name { text-align:center; margin-bottom:24px; } "
       + ".name h2 { font-size:20px; font-weight:700; } "
       + ".name p { color:#6b7280; font-size:13px; } "
-      + ".section { margin-top:18px; } "
+      + ".section { margin-top:20px; } "
       + ".section-title { font-size:15px; font-weight:700; color:#E31E24; border-bottom:2px solid #E31E24; padding-bottom:4px; margin-bottom:10px; } "
-      + ".row { display:flex; padding:5px 0; border-bottom:1px solid #f3f4f6; } "
+      + ".row { display:flex; padding:6px 0; border-bottom:1px solid #f3f4f6; } "
       + ".row-label { width:160px; color:#6b7280; font-size:13px; flex-shrink:0; } "
       + ".row-value { font-weight:500; } "
-      + ".footer { text-align:center; margin-top:30px; padding-top:16px; border-top:2px solid #E31E24; color:#9ca3af; font-size:11px; } "
-      + "@media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .header { background:#E31E24 !important; } } "
+      + ".footer { text-align:center; margin-top:30px; padding-top:16px; border-top:2px solid #E31E24; color:#9ca3af; font-size:11px; padding-bottom:20px; } "
+      + ".print-btn { position:fixed; bottom:24px; right:24px; background:#E31E24; color:white; border:none; padding:12px 28px; border-radius:12px; font-size:15px; font-weight:600; cursor:pointer; box-shadow:0 4px 12px rgba(227,30,36,0.4); font-family:'Sarabun',sans-serif; } "
+      + ".print-btn:hover { background:#B71820; } "
+      + "@media print { html { background:white; } .page { margin:0; box-shadow:none; width:100%; } .print-btn { display:none; } body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .header { background:#E31E24 !important; } } "
       + "</style></head><body>"
+      + "<div class='page'>"
       + "<div class='header'><div><h1>ใบสมัครงาน</h1><small>Matching Wealth Co., Ltd.</small></div><div style='text-align:right'><small>" + formatDate(app.createdAt || app.submittedAt || "") + "</small></div></div>"
-      + "<div class='body'>"
+      + "<div class='content'>"
       + (photoHtml ? "<div class='photo-row'>" + photoHtml + "</div>" : "")
       + "<div class='name'><h2>" + (app.prefixTh||"") + (app.firstNameTh||"") + " " + (app.lastNameTh||"") + "</h2>"
       + ((app.firstNameEn||app.lastNameEn) ? "<p>" + (app.prefixEn||"") + " " + (app.firstNameEn||"") + " " + (app.lastNameEn||"") + "</p>" : "")
@@ -262,7 +268,9 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       + (app.howDidYouKnow ? "<div class='row'><div class='row-label'>ทราบข่าวจาก</div><div class='row-value'>" + app.howDidYouKnow + "</div></div>" : "") + "</div>"
       + "<div class='section'><div class='section-title'>บุคคลอ้างอิง</div>" + ecHtml + "</div>"
       + "<div class='footer'>MATCHING WEALTH CO., LTD.</div>"
-      + "</div></body></html>";
+      + "</div></div>"
+      + "<button class='print-btn' onclick='window.print()'>🖨️ พิมพ์ / บันทึก PDF</button>"
+      + "</body></html>";
 
     const w = window.open("", "_blank");
     if (w) {
