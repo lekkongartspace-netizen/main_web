@@ -1,4 +1,17 @@
 [
-  { "name": "Admin", "pin": "111111", "role": "admin" },
-  { "name": "User", "pin": "222222", "role": "user" }
+  {
+    "name": "Admin",
+    "pin": "111111",
+    "role": "admin"
+  },
+  {
+    "name": "User",
+    "pin": "222222",
+    "role": "user"
+  },
+  {
+    "name": "User2",
+    "pin": "999999",
+    "role": "user"
+  }
 ]
