@@ -2,13 +2,14 @@ import { google } from "googleapis";
 import { Readable } from "stream";
 
 function getAuth() {
-  return new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    },
-    scopes: ["https://www.googleapis.com/auth/drive.file"],
+  const oauth2 = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET
+  );
+  oauth2.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
   });
+  return oauth2;
 }
 
 export async function uploadJsonToDrive(

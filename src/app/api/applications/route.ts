@@ -5,10 +5,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function isGoogleDriveReady(): boolean {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || "";
-  const key = process.env.GOOGLE_PRIVATE_KEY || "";
+  const clientId = process.env.GOOGLE_CLIENT_ID || "";
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN || "";
   const folder = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
-  return email.length > 5 && key.length > 50 && folder.length > 5;
+  return clientId.length > 5 && clientSecret.length > 5 && refreshToken.length > 10 && folder.length > 5;
 }
 
 export async function POST(req: NextRequest) {
