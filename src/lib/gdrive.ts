@@ -85,3 +85,37 @@ export async function listApplications(): Promise<unknown[]> {
 
   return results;
 }
+
+export async function updateJsonInDrive(
+  fileId: string,
+  data: Record<string, unknown>
+): Promise<void> {
+  const auth = getAuth();
+  const drive = google.drive({ version: "v3", auth });
+
+  await drive.files.update({
+    fileId,
+    media: {
+      mimeType: "application/json",
+      body: JSON.stringify(data, null, 2),
+    },
+  });
+}
+
+export async function deleteFileFromDrive(fileId: string): Promise<void> {
+  const auth = getAuth();
+  const drive = google.drive({ version: "v3", auth });
+  await drive.files.delete({ fileId });
+}
+
+export async function findApplicationFileId(appId: string): Promise<string | null> {
+  const auth = getAuth();
+  const drive = google.drive({ version: "v3", auth });
+
+  const res = await drive.files.list({
+    q: "'" + process.env.GOOGLE_DRIVE_FOLDER_ID + "' in parents and name='application_" + appId + ".json' and trashed=false",
+    fields: "files(id)",
+  });
+
+  return res.data.files?.[0]?.id || null;
+}

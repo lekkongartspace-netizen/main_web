@@ -8,8 +8,7 @@ import SaveOverlay from "@/components/SaveOverlay";
 import InactivityGuard from "@/components/InactivityGuard";
 
 interface Props {
-  userName: string;
-  role: "admin" | "user";
+  session: { name: string; role: "admin" | "user" } | null;
 }
 
 interface WorkHistory {
@@ -56,7 +55,7 @@ const STEPS = [
   "ตรวจสอบ",
 ];
 
-export default function ApplyClient({ userName, role }: Props) {
+export default function ApplyClient({ session }: Props) {
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -252,7 +251,7 @@ export default function ApplyClient({ userName, role }: Props) {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar userName={userName} role={role} />
+        <Navbar session={session} />
         <div className="max-w-lg mx-auto px-4 py-20 text-center slide-up">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -689,8 +688,8 @@ export default function ApplyClient({ userName, role }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar userName={userName} role={role} />
-      <InactivityGuard />
+      <Navbar session={session} />
+      {session && <InactivityGuard />}
       {saving && <SaveOverlay message="กำลังส่งใบสมัคร..." />}
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">

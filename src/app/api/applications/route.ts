@@ -100,3 +100,79 @@ export async function GET() {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  const session = await getSession();
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
+  }
+
+  if (!isGoogleDriveReady()) {
+    return NextResponse.json({ error: "Google Drive ยังไม่ได้ตั้งค่า" }, { status: 500 });
+  }
+
+  try {
+    const body = await req.json();
+    const { id, ...data } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "ไม่มี ID" }, { status: 400 });
+    }
+
+    const { findApplicationFileId, updateJsonInDrive } = await import("@/lib/gdrive");
+    const fileId = await findApplicationFileId(id);
+
+    if (!fileId) {
+      return NextResponse.json({ error: "ไม่พบใบสมัคร" }, { status: 404 });
+    }
+
+    await updateJsonInDrive(fileId, { id, ...data, updatedAt: new Date().toISOString() });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[MW] Update error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const session = await getSession();
+  if (!session || session.role !== "admin") {
+    return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
+  }
+
+  if (!isGoogleDriveReady()) {
+    return NextResponse.json({ error: "Google Drive ยังไม่ได้ตั้งค่า" }, { status: 500 });
+  }
+
+  try {
+    const { id, fileIds } = await req.json();
+
+    if (!id) {
+      return NextResponse.json({ error: "ไม่มี ID" }, { status: 400 });
+    }
+
+    const { findApplicationFileId, deleteFileFromDrive } = await import("@/lib/gdrive");
+
+    const jsonFileId = await findApplicationFileId(id);
+    if (jsonFileId) {
+      await deleteFileFromDrive(jsonFileId);
+    }
+
+    if (fileIds && typeof fileIds === "object") {
+      for (const fid of Object.values(fileIds)) {
+        try {
+          await deleteFileFromDrive(fid as string);
+        } catch {
+          // skip
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[MW] Delete error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
+}

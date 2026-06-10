@@ -9,15 +9,13 @@ import InactivityGuard from "@/components/InactivityGuard";
 interface Pin {
   name: string;
   pin: string;
-  role: "admin" | "user";
 }
 
 interface Props {
-  userName: string;
-  role: "admin" | "user";
+  session: { name: string; role: "admin" | "user" };
 }
 
-export default function AdminPinsClient({ userName, role }: Props) {
+export default function AdminPinsClient({ session }: Props) {
   const [pins, setPins] = useState<Pin[]>([]);
   const [originalPins, setOriginalPins] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -99,7 +97,7 @@ export default function AdminPinsClient({ userName, role }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar userName={userName} role={role} />
+      <Navbar session={session} />
       <InactivityGuard />
       {saving && <SaveOverlay />}
 

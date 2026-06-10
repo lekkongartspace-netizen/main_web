@@ -4,8 +4,7 @@ import Navbar from "@/components/Navbar";
 import InactivityGuard from "@/components/InactivityGuard";
 
 interface Props {
-  userName: string;
-  role: "admin" | "user";
+  session: { name: string; role: "admin" | "user" } | null;
 }
 
 const scopeItems = [
@@ -16,27 +15,25 @@ const scopeItems = [
 ];
 
 const buildings = [
-  "Main House",
-  "Guest House",
-  "Car Park",
-  "Security",
-  "Maid House",
-  "Pavilion",
-  "Landscape",
+  "Main House", "Guest House", "Car Park", "Security", "Maid House", "Pavilion", "Landscape",
 ];
 
-export default function DashboardClient({ userName, role }: Props) {
+export default function DashboardClient({ session }: Props) {
+  const isAdmin = session?.role === "admin";
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar userName={userName} role={role} />
-      <InactivityGuard />
+      <Navbar session={session} />
+      {session && <InactivityGuard />}
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="slide-up">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            สวัสดี, {userName} 👋
+            {session ? "สวัสดี, " + session.name + " 👋" : "Matching Wealth Co., Ltd."}
           </h1>
-          <p className="text-gray-500 mb-8">ยินดีต้อนรับเข้าสู่ระบบ Matching Wealth</p>
+          <p className="text-gray-500 mb-8">
+            {session ? "ยินดีต้อนรับเข้าสู่ระบบ" : "ระบบจัดการโครงการและทรัพยากรบุคคล"}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10 slide-up" style={{ animationDelay: "0.1s" }}>
@@ -48,7 +45,7 @@ export default function DashboardClient({ userName, role }: Props) {
             <p className="text-sm text-gray-500 mt-1">กรอกใบสมัครพนักงานใหม่</p>
           </a>
 
-          {role === "admin" && (
+          {isAdmin && (
             <>
               <a href="/admin" className="card-hover group cursor-pointer">
                 <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center mb-3 group-hover:bg-brand-red transition-colors duration-300">
@@ -104,23 +101,17 @@ export default function DashboardClient({ userName, role }: Props) {
               {buildings.map((b, i) => (
                 <div key={b} className="flex items-center justify-between py-3 px-1">
                   <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 bg-brand-light rounded-full flex items-center justify-center text-xs font-bold text-brand-red">
-                      {i + 1}
-                    </span>
+                    <span className="w-7 h-7 bg-brand-light rounded-full flex items-center justify-center text-xs font-bold text-brand-red">{i + 1}</span>
                     <span className="text-gray-800 font-medium">{b}</span>
                   </div>
-                  <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">
-                    Completed
-                  </span>
+                  <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">Completed</span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        <div className="mt-6 text-center text-xs text-gray-400 pb-8">
-          MATCHING WEALTH CO., LTD.
-        </div>
+        <div className="mt-6 text-center text-xs text-gray-400 pb-8">MATCHING WEALTH CO., LTD.</div>
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 h-1 bg-brand-red" />
