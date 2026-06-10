@@ -6,12 +6,32 @@ interface PinEntry {
   role: "admin" | "user";
 }
 
+function decodeBase64(str: string): string {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(str, "base64").toString("utf-8");
+  }
+  return new TextDecoder().decode(
+    Uint8Array.from(atob(str), (c) => c.charCodeAt(0))
+  );
+}
+
+function encodeBase64(str: string): string {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(str).toString("base64");
+  }
+  return btoa(
+    Array.from(new TextEncoder().encode(str))
+      .map((b) => String.fromCharCode(b))
+      .join("")
+  );
+}
+
 async function getFileFromGitHub(): Promise<{ content: PinEntry[]; sha: string }> {
   const res = await fetch(
-    `${GITHUB_API}/repos/${process.env.GITHUB_OWNER}/${process.env.GITHUB_REPO}/contents/${process.env.GITHUB_PINS_PATH}`,
+    GITHUB_API + "/repos/" + process.env.GITHUB_OWNER + "/" + process.env.GITHUB_REPO + "/contents/" + process.env.GITHUB_PINS_PATH,
     {
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Authorization: "Bearer " + process.env.GITHUB_TOKEN,
         Accept: "application/vnd.github.v3+json",
       },
       cache: "no-store",
@@ -22,16 +42,16 @@ async function getFileFromGitHub(): Promise<{ content: PinEntry[]; sha: string }
     if (res.status === 404) {
       return { content: [], sha: "" };
     }
-    throw new Error(`GitHub API error: ${res.status}`);
+    throw new Error("GitHub API error: " + res.status);
   }
 
   const data = await res.json();
-  const decoded = Buffer.from(data.content, "base64").toString("utf-8");
+  const decoded = decodeBase64(data.content);
   return { content: JSON.parse(decoded), sha: data.sha };
 }
 
 async function saveFileToGitHub(content: PinEntry[], sha: string): Promise<void> {
-  const encoded = Buffer.from(JSON.stringify(content, null, 2)).toString("base64");
+  const encoded = encodeBase64(JSON.stringify(content, null, 2));
 
   const body: Record<string, string> = {
     message: "Update pins.json",
@@ -40,11 +60,11 @@ async function saveFileToGitHub(content: PinEntry[], sha: string): Promise<void>
   if (sha) body.sha = sha;
 
   const res = await fetch(
-    `${GITHUB_API}/repos/${process.env.GITHUB_OWNER}/${process.env.GITHUB_REPO}/contents/${process.env.GITHUB_PINS_PATH}`,
+    GITHUB_API + "/repos/" + process.env.GITHUB_OWNER + "/" + process.env.GITHUB_REPO + "/contents/" + process.env.GITHUB_PINS_PATH,
     {
       method: "PUT",
       headers: {
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Authorization: "Bearer " + process.env.GITHUB_TOKEN,
         Accept: "application/vnd.github.v3+json",
         "Content-Type": "application/json",
       },
@@ -54,7 +74,7 @@ async function saveFileToGitHub(content: PinEntry[], sha: string): Promise<void>
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`GitHub save error: ${res.status} ${err}`);
+    throw new Error("GitHub save error: " + res.status + " " + err);
   }
 }
 

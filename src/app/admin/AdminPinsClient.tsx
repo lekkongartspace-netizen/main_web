@@ -155,7 +155,7 @@ export default function AdminPinsClient({ userName, role }: Props) {
                     onChange={(e) => updatePin(idx, "pin", e.target.value.replace(/\D/g, ""))}
                     className="input-field font-mono tracking-widest"
                     placeholder="123456"
-                    maxLength={8}
+                    maxLength={6}
                   />
                 </div>
                 <div className="w-full sm:w-36">

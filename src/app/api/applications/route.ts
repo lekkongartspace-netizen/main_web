@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,35 +17,35 @@ export async function POST(req: NextRequest) {
     const timestamp = new Date().toISOString();
 
     const fields: Record<string, string> = {};
-    const fileNames: Record<string, string> = {};
+    const fileEntries: { key: string; file: File }[] = [];
 
     for (const [key, value] of formData.entries()) {
-      if (value instanceof File && value.size > 0) {
-        fileNames[key] = value.name;
-      } else if (typeof value === "string") {
+      if (typeof value === "string") {
         fields[key] = value;
+      } else if (typeof value === "object" && value !== null && "arrayBuffer" in value) {
+        const f = value as File;
+        if (f.size > 0) {
+          fileEntries.push({ key, file: f });
+        }
       }
     }
 
     if (!hasGoogleConfig) {
-      console.log("Application received (Google Drive not configured):", appId);
-      console.log("Fields:", JSON.stringify(fields, null, 2));
-      console.log("Files:", fileNames);
+      console.log("[APP] Application received (no GDrive config):", appId);
+      console.log("[APP] Fields:", JSON.stringify(fields, null, 2));
+      console.log("[APP] Files:", fileEntries.map((f) => f.file.name));
       return NextResponse.json({ ok: true, id: appId, note: "saved_locally" });
     }
 
-    const { uploadJsonToDrive, uploadFileToDrive } = await import("@/lib/gdrive");
+    const { uploadJsonToDrive, uploadFileToDriveFromArrayBuffer } = await import("@/lib/gdrive");
     const fileIds: Record<string, string> = {};
 
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File && value.size > 0) {
-        const arrayBuffer = await value.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const ext = value.name.split(".").pop() || "bin";
-        const fileName = appId + "_" + key + "." + ext;
-        const fileId = await uploadFileToDrive(fileName, buffer, value.type);
-        fileIds[key] = fileId;
-      }
+    for (const entry of fileEntries) {
+      const ab = await entry.file.arrayBuffer();
+      const ext = entry.file.name.split(".").pop() || "bin";
+      const fileName = appId + "_" + entry.key + "." + ext;
+      const fileId = await uploadFileToDriveFromArrayBuffer(fileName, ab, entry.file.type);
+      fileIds[entry.key] = fileId;
     }
 
     const applicationData = {
@@ -55,10 +56,9 @@ export async function POST(req: NextRequest) {
     };
 
     await uploadJsonToDrive("application_" + appId + ".json", applicationData);
-
     return NextResponse.json({ ok: true, id: appId });
   } catch (err) {
-    console.error("Application submit error:", err);
+    console.error("[APP] Submit error:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
@@ -84,7 +84,7 @@ export async function GET() {
     const apps = await listApplications();
     return NextResponse.json(apps);
   } catch (err) {
-    console.error("List applications error:", err);
+    console.error("[APP] List error:", err);
     return NextResponse.json({ error: "ไม่สามารถโหลดข้อมูลได้" }, { status: 500 });
   }
 }

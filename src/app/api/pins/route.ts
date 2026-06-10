@@ -36,8 +36,8 @@ export async function PUT(req: NextRequest) {
       if (!p.name || !p.pin || !p.role) {
         return NextResponse.json({ error: "ข้อมูลไม่ครบ" }, { status: 400 });
       }
-      if (!/^\d{4,8}$/.test(p.pin)) {
-        return NextResponse.json({ error: "PIN ต้องเป็นตัวเลข 4-8 หลัก" }, { status: 400 });
+      if (!/^\d{6}$/.test(p.pin)) {
+        return NextResponse.json({ error: "PIN ต้องเป็นตัวเลข 6 หลัก" }, { status: 400 });
       }
     }
 
