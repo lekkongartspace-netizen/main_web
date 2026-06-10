@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { Readable } from "stream";
 
 function getAuth() {
   return new google.auth.GoogleAuth({
@@ -17,78 +18,43 @@ export async function uploadJsonToDrive(
   const auth = getAuth();
   const drive = google.drive({ version: "v3", auth });
 
-  const fileMetadata = {
-    name: fileName,
-    parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
-    mimeType: "application/json",
-  };
-
-  const media = {
-    mimeType: "application/json",
-    body: JSON.stringify(data, null, 2),
-  };
-
   const res = await drive.files.create({
-    requestBody: fileMetadata,
-    media,
+    requestBody: {
+      name: fileName,
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
+      mimeType: "application/json",
+    },
+    media: {
+      mimeType: "application/json",
+      body: JSON.stringify(data, null, 2),
+    },
     fields: "id",
   });
 
   return res.data.id || "";
 }
 
-export async function uploadFileToDrive(
+export async function uploadFileFromBytes(
   fileName: string,
-  buffer: Buffer,
+  bytes: Uint8Array,
   mimeType: string
 ): Promise<string> {
   const auth = getAuth();
   const drive = google.drive({ version: "v3", auth });
-  const { Readable } = await import("stream");
 
-  const fileMetadata = {
-    name: fileName,
-    parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
-  };
-
-  const media = {
-    mimeType,
-    body: Readable.from(buffer),
-  };
+  const stream = new Readable();
+  stream.push(bytes);
+  stream.push(null);
 
   const res = await drive.files.create({
-    requestBody: fileMetadata,
-    media,
-    fields: "id",
-  });
-
-  return res.data.id || "";
-}
-
-export async function uploadFileToDriveFromArrayBuffer(
-  fileName: string,
-  arrayBuffer: ArrayBuffer,
-  mimeType: string
-): Promise<string> {
-  const auth = getAuth();
-  const drive = google.drive({ version: "v3", auth });
-  const { Readable } = await import("stream");
-
-  const uint8 = new Uint8Array(arrayBuffer);
-
-  const fileMetadata = {
-    name: fileName,
-    parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
-  };
-
-  const media = {
-    mimeType,
-    body: Readable.from(uint8),
-  };
-
-  const res = await drive.files.create({
-    requestBody: fileMetadata,
-    media,
+    requestBody: {
+      name: fileName,
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
+    },
+    media: {
+      mimeType,
+      body: stream,
+    },
     fields: "id",
   });
 
