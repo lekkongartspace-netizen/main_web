@@ -183,7 +183,7 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
     </div>
   );
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const socials = [
       app.phone && ("โทร: " + app.phone),
       app.email && ("อีเมล: " + app.email),
