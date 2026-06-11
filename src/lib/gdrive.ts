@@ -59,7 +59,14 @@ export async function uploadFileFromBytes(
     fields: "id",
   });
 
-  return res.data.id || "";
+  const fileId = res.data.id || "";
+
+  await drive.permissions.create({
+    fileId,
+    requestBody: { role: "reader", type: "anyone" },
+  });
+
+  return fileId;
 }
 
 export async function listApplications(): Promise<unknown[]> {

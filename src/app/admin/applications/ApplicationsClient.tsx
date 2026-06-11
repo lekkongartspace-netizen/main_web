@@ -71,7 +71,7 @@ function driveFileUrl(fileId: string) {
 }
 
 function driveImageUrl(fileId: string) {
-  return "https://drive.google.com/thumbnail?id=" + fileId + "&sz=w400";
+  return "https://lh3.googleusercontent.com/d/" + fileId + "=w400";
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -122,6 +122,7 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
   const hasDriving = app.drivingLicense === "true";
   const photoFileId = app.files?.photo;
   const resumeFileId = app.files?.resume;
+  const idCardFileId = app.files?.idCard;
 
   const startEdit = () => {
     const editable: Record<string, string> = {};
@@ -130,7 +131,7 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       "nickname","nationality","idCardNumber","birthDate","gender","maritalStatus",
       "militaryStatus","phone","email","lineId","facebook","instagram","tiktok",
       "addressLine","subDistrict","district",
-      "province","postalCode","skills","computerSkills","vehicleTypes","workAttitude",
+      "province","postalCode","skills","computerSkills","itSkills","aiSkills","vehicleTypes","workAttitude",
       "strengthWeakness","expectedSalary","availableStartDate","howDidYouKnow",
     ];
     keys.forEach((k) => { editable[k] = (app[k] as string) || ""; });
@@ -259,6 +260,8 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       + "<div class='section'><div class='section-title'>ความสามารถ</div>"
       + (app.skills ? "<div class='row'><div class='row-label'>ความสามารถพิเศษ</div><div class='row-value'>" + app.skills + "</div></div>" : "")
       + (app.computerSkills ? "<div class='row'><div class='row-label'>คอมพิวเตอร์</div><div class='row-value'>" + app.computerSkills + "</div></div>" : "")
+      + ((app.itSkills as string) ? "<div class='row'><div class='row-label'>IT</div><div class='row-value'>" + app.itSkills + "</div></div>" : "")
+      + ((app.aiSkills as string) ? "<div class='row'><div class='row-label'>AI</div><div class='row-value'>" + app.aiSkills + "</div></div>" : "")
       + "<div class='row'><div class='row-label'>ใบขับขี่</div><div class='row-value'>" + (hasDriving ? "มี" + (app.vehicleTypes ? " (" + app.vehicleTypes + ")" : "") : "ไม่มี") + "</div></div></div>"
       + "<div class='section'><div class='section-title'>ทัศนคติและข้อมูลเพิ่มเติม</div>"
       + (app.workAttitude ? "<div class='row'><div class='row-label'>ทัศนคติ</div><div class='row-value'>" + app.workAttitude + "</div></div>" : "")
@@ -385,6 +388,8 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
               <div className="bg-gray-50 rounded-xl p-4 space-y-2">
                 <InfoRow label="ความสามารถพิเศษ" value={app.skills} />
                 <InfoRow label="ทักษะคอมพิวเตอร์" value={app.computerSkills} />
+                <InfoRow label="ทักษะด้าน IT" value={app.itSkills as string} />
+                <InfoRow label="ทักษะด้าน AI" value={app.aiSkills as string} />
                 <InfoRow label="ใบขับขี่" value={hasDriving ? "มี" + (app.vehicleTypes ? " (" + app.vehicleTypes + ")" : "") : "ไม่มี"} />
               </div>
 
@@ -410,20 +415,37 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
                 )) : <p className="text-sm text-gray-400">ไม่มีข้อมูล</p>}
               </div>
 
-              {resumeFileId && (
+              {(resumeFileId || idCardFileId) && (
                 <>
                   <SectionHeader icon="📎" title="เอกสารแนบ" />
-                  <a href={driveFileUrl(resumeFileId)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors group">
-                    <div className="w-10 h-10 bg-brand-light rounded-lg flex items-center justify-center">
-                      <svg className="w-5 h-5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 group-hover:text-brand-red transition-colors">เรซูเม่</p>
-                      <p className="text-xs text-gray-400">คลิกเพื่อเปิดใน Google Drive</p>
-                    </div>
-                  </a>
+                  <div className="space-y-3">
+                    {resumeFileId && (
+                      <a href={driveFileUrl(resumeFileId)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors group">
+                        <div className="w-10 h-10 bg-brand-light rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 group-hover:text-brand-red transition-colors">เรซูเม่</p>
+                          <p className="text-xs text-gray-400">คลิกเพื่อเปิดใน Google Drive</p>
+                        </div>
+                      </a>
+                    )}
+                    {idCardFileId && (
+                      <a href={driveFileUrl(idCardFileId)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors group">
+                        <div className="w-10 h-10 bg-brand-light rounded-lg flex items-center justify-center">
+                          <svg className="w-5 h-5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 group-hover:text-brand-red transition-colors">สำเนาบัตรประชาชน</p>
+                          <p className="text-xs text-gray-400">คลิกเพื่อเปิดใน Google Drive</p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -510,6 +532,8 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                 {editField("skills", "ความสามารถพิเศษ")}
                 {editField("computerSkills", "ทักษะคอมพิวเตอร์")}
+                {editField("itSkills", "ทักษะด้าน IT")}
+                {editField("aiSkills", "ทักษะด้าน AI")}
                 {editField("vehicleTypes", "ประเภทยานพาหนะ")}
                 {editField("workAttitude", "ทัศนคติในการทำงาน")}
                 {editField("strengthWeakness", "จุดแข็งและจุดอ่อน")}

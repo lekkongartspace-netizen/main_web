@@ -63,10 +63,12 @@ export default function ApplyClient({ session }: Props) {
   const [validationErrors, setValidationErrors] = useState<{ label: string; step: number }[]>([]);
   const photoRef = useRef<HTMLInputElement>(null);
   const resumeRef = useRef<HTMLInputElement>(null);
+  const idCardRef = useRef<HTMLInputElement>(null);
 
   const [photoPreview, setPhotoPreview] = useState<string>("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [idCardFile, setIdCardFile] = useState<File | null>(null);
 
   const [form, setForm] = useState({
     prefixTh: "นาย",
@@ -105,6 +107,8 @@ export default function ApplyClient({ session }: Props) {
 
     skills: "",
     computerSkills: "",
+    itSkills: "",
+    aiSkills: "",
     drivingLicense: false,
     vehicleTypes: "",
 
@@ -133,6 +137,11 @@ export default function ApplyClient({ session }: Props) {
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) setResumeFile(file);
+  };
+
+  const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setIdCardFile(file);
   };
 
   const addWorkHistory = () => {
@@ -207,6 +216,7 @@ export default function ApplyClient({ session }: Props) {
     if (!form.postalCode.trim()) errors.push({ label: "รหัสไปรษณีย์", step: 1 });
     if (form.educations.some((e) => !e.institution.trim())) errors.push({ label: "สถาบันการศึกษา", step: 2 });
     if (form.emergencyContacts.every((c) => !c.name.trim() || !c.phone.trim())) errors.push({ label: "บุคคลอ้างอิงอย่างน้อย 1 คน", step: 5 });
+    if (!idCardFile) errors.push({ label: "สำเนาบัตรประชาชน", step: 6 });
     return errors;
   };
 
@@ -245,6 +255,7 @@ export default function ApplyClient({ session }: Props) {
 
       if (photoFile) fd.append("photo", photoFile);
       if (resumeFile) fd.append("resume", resumeFile);
+      if (idCardFile) fd.append("idCard", idCardFile);
 
       const res = await fetch("/api/applications", { method: "POST", body: fd });
       const data = await res.json();
@@ -582,6 +593,14 @@ export default function ApplyClient({ session }: Props) {
               <label className="label">ทักษะคอมพิวเตอร์</label>
               <textarea value={form.computerSkills} onChange={(e) => updateForm("computerSkills", e.target.value)} className="input-field" rows={2} placeholder="เช่น Microsoft Office, AutoCAD, Photoshop" />
             </div>
+            <div>
+              <label className="label">ทักษะด้าน IT</label>
+              <textarea value={form.itSkills} onChange={(e) => updateForm("itSkills", e.target.value)} className="input-field" rows={2} placeholder="เช่น Networking, Server, Database, Web Development" />
+            </div>
+            <div>
+              <label className="label">ทักษะด้าน AI</label>
+              <textarea value={form.aiSkills} onChange={(e) => updateForm("aiSkills", e.target.value)} className="input-field" rows={2} placeholder="เช่น ChatGPT, Midjourney, Python ML, Data Analysis" />
+            </div>
             <div className="flex items-center gap-4">
               <Toggle checked={form.drivingLicense} onChange={(val) => updateForm("drivingLicense", val)} label="มีใบขับขี่" />
             </div>
@@ -675,6 +694,32 @@ export default function ApplyClient({ session }: Props) {
               </div>
               <input ref={resumeRef} type="file" accept=".pdf,.doc,.docx" onChange={handleResumeChange} className="hidden" />
             </div>
+
+            <div>
+              <label className="label">สำเนาบัตรประชาชน <span className="text-red-500">*</span></label>
+              <div
+                onClick={() => idCardRef.current?.click()}
+                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-brand-red hover:bg-red-50/30 transition-all duration-200"
+              >
+                {idCardFile ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-gray-700 font-medium">{idCardFile.name}</span>
+                  </div>
+                ) : (
+                  <>
+                    <svg className="w-10 h-10 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />
+                    </svg>
+                    <p className="text-gray-500 text-sm">คลิกเพื่ออัพโหลดสำเนาบัตรประชาชน</p>
+                    <p className="text-gray-400 text-xs mt-1">PDF, JPG, PNG (สูงสุด 10MB)</p>
+                  </>
+                )}
+              </div>
+              <input ref={idCardRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleIdCardChange} className="hidden" />
+            </div>
           </div>
         );
 
@@ -710,6 +755,7 @@ export default function ApplyClient({ session }: Props) {
                 <p><span className="font-medium text-gray-600">เงินเดือนที่คาดหวัง:</span> {form.expectedSalary || "-"} บาท</p>
                 <p><span className="font-medium text-gray-600">รูปถ่าย:</span> {photoFile ? "แนบแล้ว" : "ไม่ได้แนบ"}</p>
                 <p><span className="font-medium text-gray-600">เรซูเม่:</span> {resumeFile ? resumeFile.name : "ไม่ได้แนบ"}</p>
+                <p><span className="font-medium text-gray-600">สำเนาบัตรประชาชน:</span> {idCardFile ? idCardFile.name : "ไม่ได้แนบ"}</p>
               </div>
             </div>
           </div>
