@@ -71,7 +71,7 @@ function driveFileUrl(fileId: string) {
 }
 
 function driveImageUrl(fileId: string) {
-  return "https://drive.google.com/uc?export=view&id=" + fileId;
+  return "/api/files?id=" + fileId;
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -270,7 +270,7 @@ function DetailModal({ app, onClose, onDelete }: {
               {photoFileId && (
                 <div className="flex justify-center mb-4">
                   <div className="w-28 h-28 rounded-xl overflow-hidden border-4 border-brand-light shadow-md">
-                    <img src={driveImageUrl(photoFileId)} alt="รูปถ่าย" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={driveImageUrl(photoFileId)} alt="รูปถ่าย" className="w-full h-full object-cover" />
                   </div>
                 </div>
               )}

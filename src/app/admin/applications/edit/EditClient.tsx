@@ -83,7 +83,7 @@ export default function EditClient({ session }: Props) {
       setExistingFiles(app.files || {});
 
       if (app.files?.photo) {
-        setPhotoPreview("https://drive.google.com/uc?export=view&id=" + app.files.photo);
+        setPhotoPreview("/api/files?id=" + app.files.photo);
       }
 
       const langs = parseJson(app.languages) as string[] || ["ไทย"];
