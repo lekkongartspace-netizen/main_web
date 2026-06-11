@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import InAppBrowserGuard from "@/components/InAppBrowserGuard";
 
 export const metadata: Metadata = {
   title: "Matching Wealth Co., Ltd.",
@@ -16,7 +17,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
-      <body className="min-h-screen bg-gray-50">{children}</body>
+      <body className="min-h-screen bg-gray-50">
+        <InAppBrowserGuard />
+        {children}
+      </body>
     </html>
   );
 }
