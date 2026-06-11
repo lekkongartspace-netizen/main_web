@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Toggle from "@/components/Toggle";
 import FlatpickrInput from "@/components/FlatpickrInput";
 import SaveOverlay from "@/components/SaveOverlay";
+import { calcAge } from "@/lib/calcAge";
 
 interface Props {
   session: { name: string; role: "admin" | "user" };
@@ -200,9 +201,10 @@ export default function EditClient({ session }: Props) {
             <div><label className="label">ชื่อเล่น</label><input value={form.nickname} onChange={(e) => updateForm("nickname", e.target.value)} className="input-field" /></div>
             <div><label className="label">สัญชาติ</label><select value={form.nationality} onChange={(e) => updateForm("nationality", e.target.value)} className="input-field">{NATIONALITIES.map((n) => <option key={n}>{n}</option>)}</select></div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><label className="label">เลขบัตรประชาชน</label><input value={form.idCardNumber} onChange={(e) => updateForm("idCardNumber", e.target.value)} className="input-field" maxLength={17} /></div>
             <div><label className="label">วันเกิด</label><FlatpickrInput value={form.birthDate} onChange={(val) => updateForm("birthDate", val)} /></div>
+            <div><label className="label">อายุ</label><input value={calcAge(form.birthDate)} readOnly className="input-field bg-gray-50 cursor-not-allowed" /></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><label className="label">เพศ</label><select value={form.gender} onChange={(e) => updateForm("gender", e.target.value)} className="input-field"><option>ชาย</option><option>หญิง</option><option>อื่น ๆ</option></select></div>

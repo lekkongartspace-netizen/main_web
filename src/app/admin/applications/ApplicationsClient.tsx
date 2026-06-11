@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Spinner from "@/components/Spinner";
 import InactivityGuard from "@/components/InactivityGuard";
+import { calcAge } from "@/lib/calcAge";
 
 interface Application {
   id: string;
@@ -208,6 +209,7 @@ function DetailModal({ app, onClose, onDelete }: {
       + "<div class='row'><div class='row-label'>สัญชาติ</div><div class='row-value'>" + (app.nationality||"-") + "</div></div>"
       + "<div class='row'><div class='row-label'>เลขบัตรประชาชน</div><div class='row-value'>" + (app.idCardNumber||"-") + "</div></div>"
       + "<div class='row'><div class='row-label'>วันเกิด</div><div class='row-value'>" + (app.birthDate||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>อายุ</div><div class='row-value'>" + (calcAge(app.birthDate||"") || "-") + "</div></div>"
       + "<div class='row'><div class='row-label'>เพศ</div><div class='row-value'>" + (app.gender||"-") + "</div></div>"
       + "<div class='row'><div class='row-label'>สถานภาพ</div><div class='row-value'>" + (app.maritalStatus||"-") + "</div></div>"
       + "<div class='row'><div class='row-label'>สถานะทางทหาร</div><div class='row-value'>" + (app.militaryStatus||"-") + "</div></div>"
@@ -286,6 +288,7 @@ function DetailModal({ app, onClose, onDelete }: {
                 <InfoRow label="สัญชาติ" value={app.nationality} />
                 <InfoRow label="เลขบัตรประชาชน" value={app.idCardNumber} />
                 <InfoRow label="วันเกิด" value={app.birthDate} />
+                <InfoRow label="อายุ" value={calcAge(app.birthDate || "")} />
                 <InfoRow label="เพศ" value={app.gender} />
                 <InfoRow label="สถานภาพ" value={app.maritalStatus} />
                 <InfoRow label="สถานะทางทหาร" value={app.militaryStatus} />

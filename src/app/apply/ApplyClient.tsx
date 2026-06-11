@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Toggle from "@/components/Toggle";
 import FlatpickrInput from "@/components/FlatpickrInput";
 import SaveOverlay from "@/components/SaveOverlay";
+import { calcAge } from "@/lib/calcAge";
 import InactivityGuard from "@/components/InactivityGuard";
 
 interface Props {
@@ -361,7 +362,7 @@ export default function ApplyClient({ session }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="label">เลขบัตรประจำตัวประชาชน</label>
                 <input value={form.idCardNumber} onChange={(e) => updateForm("idCardNumber", e.target.value)} className="input-field" placeholder="x-xxxx-xxxxx-xx-x" maxLength={17} />
@@ -369,6 +370,10 @@ export default function ApplyClient({ session }: Props) {
               <div>
                 <label className="label">วันเกิด <span className="text-red-500">*</span></label>
                 <FlatpickrInput value={form.birthDate} onChange={(val) => updateForm("birthDate", val)} placeholder="เลือกวันเกิด" />
+              </div>
+              <div>
+                <label className="label">อายุ</label>
+                <input value={calcAge(form.birthDate)} readOnly className="input-field bg-gray-50 cursor-not-allowed" placeholder="คำนวณอัตโนมัติ" />
               </div>
             </div>
 
