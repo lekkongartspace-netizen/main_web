@@ -18,7 +18,7 @@ interface Props {
 
 export default function AdminPinsClient({ session }: Props) {
   const [pins, setPins] = useState<Pin[]>([]);
-  const [originalPins, setOriginalPins] = useState<string>("");
+  const [originalPins, setOriginalPins] = useState<string>("[]");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");

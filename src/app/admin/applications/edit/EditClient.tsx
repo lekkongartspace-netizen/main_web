@@ -37,7 +37,7 @@ const NATIONALITIES = ["ไทย","ลาว","เมียนมา","กั�
 const LANGUAGES = ["ไทย","อังกฤษ","จีน","ญี่ปุ่น","เกาหลี","ลาว","พม่า","เขมร"];
 const EDUCATION_LEVELS = ["ต่ำกว่ามัธยมศึกษา","มัธยมศึกษา / ปวช.","อนุปริญญา / ปวส.","ปริญญาตรี","ปริญญาโท","ปริญญาเอก"];
 
-const STEPS = ["ข้อมูลส่วนตัว","ที่อยู่","การศึกษา","ประสบการณ์ทำงาน","ความสามารถ","บุคคลอ้างอิง","เอกสารแนบ"];
+const STEPS = ["ข้อมูลส่วนตัว","ที่อยู่","การศึกษา","ประสบการณ์ทำงาน","ความสามารถ","บุคคลอ้างอิง"];
 
 function parseJson(val: unknown): unknown {
   if (typeof val !== "string") return val;
@@ -325,32 +325,6 @@ export default function EditClient({ session }: Props) {
           <button type="button" onClick={addEmergencyContact} className="btn-secondary w-full">+ เพิ่มบุคคลอ้างอิง</button>
         </div>
       );
-      case 6: return (
-        <div className="space-y-6 fade-in">
-          <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-lg text-sm">ไฟล์เดิมจะถูกเก็บไว้ อัพโหลดใหม่เฉพาะไฟล์ที่ต้องการเปลี่ยน</div>
-          <div>
-            <label className="label">เปลี่ยนรูปถ่าย</label>
-            <div onClick={() => photoRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand-red transition-all">
-              {photoFile ? <span className="text-gray-700 font-medium">{photoFile.name}</span> : <p className="text-gray-500 text-sm">{existingFiles.photo ? "รูปเดิมมีอยู่แล้ว — คลิกเพื่อเปลี่ยน" : "คลิกเพื่ออัพโหลด"}</p>}
-            </div>
-            <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-          </div>
-          <div>
-            <label className="label">เปลี่ยนเรซูเม่</label>
-            <div onClick={() => resumeRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand-red transition-all">
-              {resumeFile ? <span className="text-gray-700 font-medium">{resumeFile.name}</span> : <p className="text-gray-500 text-sm">{existingFiles.resume ? "เรซูเม่เดิมมีอยู่แล้ว — คลิกเพื่อเปลี่ยน" : "คลิกเพื่ออัพโหลด"}</p>}
-            </div>
-            <input ref={resumeRef} type="file" accept=".pdf,.doc,.docx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setResumeFile(f); }} className="hidden" />
-          </div>
-          <div>
-            <label className="label">เปลี่ยนสำเนาบัตรประชาชน</label>
-            <div onClick={() => idCardRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand-red transition-all">
-              {idCardFile ? <span className="text-gray-700 font-medium">{idCardFile.name}</span> : <p className="text-gray-500 text-sm">{existingFiles.idCard ? "สำเนาเดิมมีอยู่แล้ว — คลิกเพื่อเปลี่ยน" : "คลิกเพื่ออัพโหลด"}</p>}
-            </div>
-            <input ref={idCardRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { const f = e.target.files?.[0]; if (f) setIdCardFile(f); }} className="hidden" />
-          </div>
-        </div>
-      );
       default: return null;
     }
   };
@@ -382,11 +356,8 @@ export default function EditClient({ session }: Props) {
           <a href="/admin/applications" className="btn-ghost">← กลับ</a>
           <div className="flex gap-3">
             {step > 0 && <button type="button" onClick={() => goToStep(step - 1)} className="btn-ghost">ย้อนกลับ</button>}
-            {step < STEPS.length - 1 ? (
-              <button type="button" onClick={() => goToStep(step + 1)} className="btn-primary">ถัดไป →</button>
-            ) : (
-              <button type="button" onClick={handleSave} className="btn-primary">บันทึกการแก้ไข</button>
-            )}
+            {step < STEPS.length - 1 && <button type="button" onClick={() => goToStep(step + 1)} className="btn-secondary text-sm">ถัดไป →</button>}
+            <button type="button" onClick={handleSave} className="btn-primary">บันทึกการแก้ไข</button>
           </div>
         </div>
       </main>
