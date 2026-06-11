@@ -71,7 +71,7 @@ function driveFileUrl(fileId: string) {
 }
 
 function driveImageUrl(fileId: string) {
-  return "https://lh3.googleusercontent.com/d/" + fileId + "=w400";
+  return "https://drive.google.com/uc?export=view&id=" + fileId;
 }
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
@@ -95,17 +95,14 @@ function SectionHeader({ icon, title }: { icon: string; title: string }) {
   );
 }
 
-function DetailModal({ app, onClose, onUpdate, onDelete }: {
+function DetailModal({ app, onClose, onDelete }: {
   app: Application;
   onClose: () => void;
-  onUpdate: (updated: Application) => void;
   onDelete: (id: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [form, setForm] = useState<Record<string, string>>({});
 
   const languages = parseJson(app.languages) as string[] | null;
   const languageLevels = parseJson(app.languageLevels) as Record<string, string> | null;
@@ -125,39 +122,8 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
   const idCardFileId = app.files?.idCard;
 
   const startEdit = () => {
-    const editable: Record<string, string> = {};
-    const keys = [
-      "prefixTh","firstNameTh","lastNameTh","prefixEn","firstNameEn","lastNameEn",
-      "nickname","nationality","idCardNumber","birthDate","gender","maritalStatus",
-      "militaryStatus","phone","email","lineId","facebook","instagram","tiktok",
-      "addressLine","subDistrict","district",
-      "province","postalCode","skills","computerSkills","itSkills","aiSkills","vehicleTypes","workAttitude",
-      "strengthWeakness","expectedSalary","availableStartDate","howDidYouKnow",
-    ];
-    keys.forEach((k) => { editable[k] = (app[k] as string) || ""; });
-    setForm(editable);
-    setEditing(true);
-  };
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const body = { ...app };
-      Object.entries(form).forEach(([k, v]) => { body[k] = v; });
-      const res = await fetch("/api/applications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      const updated = { ...app, ...form };
-      onUpdate(updated);
-      setEditing(false);
-    } catch (err) {
-      alert("บันทึกไม่สำเร็จ: " + (err instanceof Error ? err.message : ""));
-    } finally {
-      setSaving(false);
-    }
+    sessionStorage.setItem("editApp", JSON.stringify(app));
+    window.location.href = "/admin/applications/edit";
   };
 
   const handleDelete = async () => {
@@ -176,13 +142,6 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
       setDeleting(false);
     }
   };
-
-  const editField = (key: string, label: string) => (
-    <div key={key}>
-      <label className="text-xs text-gray-500">{label}</label>
-      <input value={form[key] || ""} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className="input-field text-sm mt-0.5" />
-    </div>
-  );
 
   const handlePrint = () => {
     const socials = [
@@ -297,7 +256,7 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
 
         <div className="sticky top-0 bg-brand-red text-white px-6 py-4 rounded-t-2xl flex items-center justify-between z-10">
           <div>
-            <h2 className="text-lg font-bold">{editing ? "แก้ไขใบสมัคร" : "รายละเอียดใบสมัคร"}</h2>
+            <h2 className="text-lg font-bold">รายละเอียดใบสมัคร</h2>
             <p className="text-red-100 text-sm">{formatDate(app.createdAt || app.submittedAt || "")}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors">
@@ -308,12 +267,10 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
         </div>
 
         <div className="px-6 py-4">
-          {!editing ? (
-            <>
               {photoFileId && (
                 <div className="flex justify-center mb-4">
                   <div className="w-28 h-28 rounded-xl overflow-hidden border-4 border-brand-light shadow-md">
-                    <img src={driveImageUrl(photoFileId)} alt="รูปถ่าย" className="w-full h-full object-cover" />
+                    <img src={driveImageUrl(photoFileId)} alt="รูปถ่าย" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   </div>
                 </div>
               )}
@@ -475,81 +432,6 @@ function DetailModal({ app, onClose, onUpdate, onDelete }: {
                   </div>
                 </div>
               )}
-            </>
-          ) : (
-            <>
-              <SectionHeader icon="👤" title="ข้อมูลส่วนตัว" />
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {editField("prefixTh", "คำนำหน้า")}
-                  {editField("firstNameTh", "ชื่อ (ไทย)")}
-                  {editField("lastNameTh", "นามสกุล (ไทย)")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {editField("prefixEn", "Prefix")}
-                  {editField("firstNameEn", "First Name")}
-                  {editField("lastNameEn", "Last Name")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {editField("nickname", "ชื่อเล่น")}
-                  {editField("nationality", "สัญชาติ")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {editField("idCardNumber", "เลขบัตรประชาชน")}
-                  {editField("birthDate", "วันเกิด")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {editField("gender", "เพศ")}
-                  {editField("maritalStatus", "สถานภาพ")}
-                  {editField("militaryStatus", "สถานะทางทหาร")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {editField("phone", "เบอร์โทรศัพท์")}
-                  {editField("email", "อีเมล")}
-                  {editField("lineId", "Line ID")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {editField("facebook", "Facebook")}
-                  {editField("instagram", "Instagram")}
-                  {editField("tiktok", "TikTok")}
-                </div>
-              </div>
-
-              <SectionHeader icon="🏠" title="ที่อยู่" />
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                {editField("addressLine", "ที่อยู่")}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {editField("subDistrict", "แขวง/ตำบล")}
-                  {editField("district", "เขต/อำเภอ")}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {editField("province", "จังหวัด")}
-                  {editField("postalCode", "รหัสไปรษณีย์")}
-                </div>
-              </div>
-
-              <SectionHeader icon="⭐" title="ความสามารถและอื่น ๆ" />
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                {editField("skills", "ความสามารถพิเศษ")}
-                {editField("computerSkills", "ทักษะคอมพิวเตอร์")}
-                {editField("itSkills", "ทักษะด้าน IT")}
-                {editField("aiSkills", "ทักษะด้าน AI")}
-                {editField("vehicleTypes", "ประเภทยานพาหนะ")}
-                {editField("workAttitude", "ทัศนคติในการทำงาน")}
-                {editField("strengthWeakness", "จุดแข็งและจุดอ่อน")}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {editField("expectedSalary", "เงินเดือนที่คาดหวัง")}
-                  {editField("availableStartDate", "เริ่มงานได้")}
-                </div>
-                {editField("howDidYouKnow", "ทราบข่าวจาก")}
-              </div>
-
-              <div className="mt-8 flex gap-3 justify-center">
-                <button onClick={handleSave} className="btn-primary">บันทึก</button>
-                <button onClick={() => setEditing(false)} className="btn-ghost">ยกเลิก</button>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
@@ -640,10 +522,6 @@ export default function ApplicationsClient({ session }: Props) {
           <DetailModal
             app={selected}
             onClose={() => setSelected(null)}
-            onUpdate={(updated) => {
-              setApps(apps.map((a) => a.id === updated.id ? updated : a));
-              setSelected(updated);
-            }}
             onDelete={(id) => {
               setApps(apps.filter((a) => a.id !== id));
               setSelected(null);
