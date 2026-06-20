@@ -7,6 +7,7 @@ import FlatpickrInput from "@/components/FlatpickrInput";
 import SaveOverlay from "@/components/SaveOverlay";
 import { calcAge } from "@/lib/calcAge";
 import InactivityGuard from "@/components/InactivityGuard";
+import { validateFile, MAX_TOTAL_BYTES, MAX_TOTAL_MB } from "@/lib/uploadLimits";
 
 interface Props {
   session: { name: string; role: "admin" | "user" } | null;
@@ -129,6 +130,8 @@ export default function ApplyClient({ session }: Props) {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const err = validateFile(file, "photo");
+    if (err) { alert(err); e.target.value = ""; return; }
     setPhotoFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
@@ -137,12 +140,18 @@ export default function ApplyClient({ session }: Props) {
 
   const handleResumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setResumeFile(file);
+    if (!file) return;
+    const err = validateFile(file, "resume");
+    if (err) { alert(err); e.target.value = ""; return; }
+    setResumeFile(file);
   };
 
   const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setIdCardFile(file);
+    if (!file) return;
+    const err = validateFile(file, "idCard");
+    if (err) { alert(err); e.target.value = ""; return; }
+    setIdCardFile(file);
   };
 
   const addWorkHistory = () => {
@@ -241,6 +250,12 @@ export default function ApplyClient({ session }: Props) {
       return;
     }
     setValidationErrors([]);
+
+    const totalBytes = (photoFile?.size || 0) + (resumeFile?.size || 0) + (idCardFile?.size || 0);
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      alert("ไฟล์แนบรวมกันใหญ่เกิน " + MAX_TOTAL_MB + "MB กรุณาบีบอัดรูป/เอกสารก่อนส่ง");
+      return;
+    }
 
     setSaving(true);
     try {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { MAX_FILE_BYTES, MAX_FILE_MB } from "@/lib/uploadLimits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,12 @@ export async function POST(req: NextRequest) {
         fields[key] = value;
       } else if (typeof value === "object" && value !== null && "arrayBuffer" in value) {
         const f = value as File;
+        if (f.size > MAX_FILE_BYTES) {
+          return NextResponse.json(
+            { error: "ไฟล์ " + key + " ใหญ่เกิน " + MAX_FILE_MB + "MB" },
+            { status: 413 }
+          );
+        }
         if (f.size > 0) {
           const ab = await f.arrayBuffer();
           fileEntries.push({
@@ -112,21 +119,67 @@ export async function PUT(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { id, ...data } = body;
+    const formData = await req.formData();
 
-    if (!id) {
+    const id = formData.get("id");
+    if (!id || typeof id !== "string") {
       return NextResponse.json({ error: "ไม่มี ID" }, { status: 400 });
     }
 
-    const { findApplicationFileId, updateJsonInDrive } = await import("@/lib/gdrive");
+    let existingFiles: Record<string, string> = {};
+    try {
+      existingFiles = JSON.parse((formData.get("existingFiles") as string) || "{}");
+    } catch {
+      existingFiles = {};
+    }
+
+    const fields: Record<string, string> = {};
+    const fileEntries: { key: string; name: string; type: string; bytes: Uint8Array }[] = [];
+
+    for (const [key, value] of formData.entries()) {
+      if (key === "id" || key === "existingFiles") continue;
+      if (typeof value === "string") {
+        fields[key] = value;
+      } else if (typeof value === "object" && value !== null && "arrayBuffer" in value) {
+        const f = value as File;
+        if (f.size > MAX_FILE_BYTES) {
+          return NextResponse.json(
+            { error: "ไฟล์ " + key + " ใหญ่เกิน " + MAX_FILE_MB + "MB" },
+            { status: 413 }
+          );
+        }
+        if (f.size > 0) {
+          const ab = await f.arrayBuffer();
+          fileEntries.push({ key, name: f.name, type: f.type, bytes: new Uint8Array(ab) });
+        }
+      }
+    }
+
+    const { findApplicationFileId, updateJsonInDrive, uploadFileFromBytes, deleteFileFromDrive } =
+      await import("@/lib/gdrive");
     const fileId = await findApplicationFileId(id);
 
     if (!fileId) {
       return NextResponse.json({ error: "ไม่พบใบสมัคร" }, { status: 404 });
     }
 
-    await updateJsonInDrive(fileId, { id, ...data, updatedAt: new Date().toISOString() });
+    const files = { ...existingFiles };
+    for (const entry of fileEntries) {
+      const ext = entry.name.split(".").pop() || "bin";
+      const newName = id + "_" + entry.key + "." + ext;
+      const newId = await uploadFileFromBytes(newName, entry.bytes, entry.type);
+      const oldId = files[entry.key];
+      files[entry.key] = newId;
+      if (oldId && oldId !== newId) {
+        try {
+          await deleteFileFromDrive(oldId);
+        } catch {
+          // best-effort cleanup of the replaced file
+        }
+      }
+    }
+
+    await updateJsonInDrive(fileId, { id, ...fields, files, updatedAt: new Date().toISOString() });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[MW] Update error:", err);

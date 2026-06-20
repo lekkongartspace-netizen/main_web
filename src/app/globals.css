@@ -76,3 +76,33 @@
 .flatpickr-calendar {
   font-family: 'Sarabun', 'Inter', sans-serif !important;
 }
+
+/* ---- Project Handover document: screen + print ---- */
+.hv-page {
+  background: #fff;
+}
+
+@media print {
+  .no-print { display: none !important; }
+  html, body { background: #fff !important; }
+  .hv-shell { background: #fff !important; padding: 0 !important; }
+  .hv-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    min-height: auto !important;
+  }
+  /* Break BEFORE each page except the first. (Using break-after would force a
+     trailing blank page because the last .hv-page isn't the last DOM child —
+     the no-print action bar sits after it.) */
+  .hv-page + .hv-page {
+    break-before: page;
+    page-break-before: always;
+  }
+  .hv-avoid-break { break-inside: avoid; page-break-inside: avoid; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* No paper margin — each .hv-page already has its own inner padding. */
+  @page { margin: 0; }
+}

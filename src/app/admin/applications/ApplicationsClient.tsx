@@ -59,16 +59,23 @@ function parseJson(val: unknown): unknown {
   try { return JSON.parse(val); } catch { return val; }
 }
 
+// Escape applicant-supplied values before injecting into the print window's
+// HTML string to prevent stored XSS.
+function esc(val: unknown): string {
+  return String(val ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function formatDate(d: string) {
   try {
     return new Date(d).toLocaleDateString("th-TH", {
       year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
     });
   } catch { return d; }
-}
-
-function driveFileUrl(fileId: string) {
-  return "https://drive.google.com/file/d/" + fileId + "/view";
 }
 
 function driveImageUrl(fileId: string) {
@@ -146,35 +153,35 @@ function DetailModal({ app, onClose, onDelete }: {
 
   const handlePrint = () => {
     const socials = [
-      app.phone && ("โทร: " + app.phone),
-      app.email && ("อีเมล: " + app.email),
-      app.lineId && ("Line: " + app.lineId),
-      (app.facebook as string) && ("Facebook: " + app.facebook),
-      (app.instagram as string) && ("IG: " + app.instagram),
-      (app.tiktok as string) && ("TikTok: " + app.tiktok),
+      app.phone && ("โทร: " + esc(app.phone)),
+      app.email && ("อีเมล: " + esc(app.email)),
+      app.lineId && ("Line: " + esc(app.lineId)),
+      (app.facebook as string) && ("Facebook: " + esc(app.facebook)),
+      (app.instagram as string) && ("IG: " + esc(app.instagram)),
+      (app.tiktok as string) && ("TikTok: " + esc(app.tiktok)),
     ].filter(Boolean).join(" | ");
 
     const eduHtml = educations && educations.length > 0
-      ? educations.map((e) => "<div style='margin-bottom:6px'><strong>" + (e.institution||"-") + "</strong><br/><span style='color:#666'>" + e.level + (e.field ? " · " + e.field : "") + (e.graduationYear ? " · จบ พ.ศ. " + e.graduationYear : "") + "</span></div>").join("")
+      ? educations.map((e) => "<div style='margin-bottom:6px'><strong>" + esc(e.institution||"-") + "</strong><br/><span style='color:#666'>" + esc(e.level) + (e.field ? " · " + esc(e.field) : "") + (e.graduationYear ? " · จบ พ.ศ. " + esc(e.graduationYear) : "") + "</span></div>").join("")
       : "<span style='color:#999'>ไม่มีข้อมูล</span>";
 
     const workHtml = hasWork && workHistories && workHistories.length > 0
-      ? workHistories.map((w) => "<div style='margin-bottom:6px'><strong>" + (w.position||"-") + "</strong> — " + (w.company||"") + "<br/><span style='color:#666'>" + (w.startDate||"?") + " — " + (w.endDate||"ปัจจุบัน") + "</span>" + (w.description ? "<br/><span style='color:#555'>" + w.description + "</span>" : "") + "</div>").join("")
+      ? workHistories.map((w) => "<div style='margin-bottom:6px'><strong>" + esc(w.position||"-") + "</strong> — " + esc(w.company||"") + "<br/><span style='color:#666'>" + esc(w.startDate||"?") + " — " + esc(w.endDate||"ปัจจุบัน") + "</span>" + (w.description ? "<br/><span style='color:#555'>" + esc(w.description) + "</span>" : "") + "</div>").join("")
       : "<span style='color:#999'>ไม่มีประสบการณ์</span>";
 
     const ecHtml = emergencyContacts && emergencyContacts.length > 0
-      ? emergencyContacts.map((c) => "<div>" + (c.name||"-") + (c.relationship ? " (" + c.relationship + ")" : "") + (c.phone ? " — <strong style='color:#E31E24'>" + c.phone + "</strong>" : "") + "</div>").join("")
+      ? emergencyContacts.map((c) => "<div>" + esc(c.name||"-") + (c.relationship ? " (" + esc(c.relationship) + ")" : "") + (c.phone ? " — <strong style='color:#E31E24'>" + esc(c.phone) + "</strong>" : "") + "</div>").join("")
       : "<span style='color:#999'>ไม่มีข้อมูล</span>";
 
     const langHtml = languages && languages.length > 0
-      ? languages.map((l) => "<span style='background:#FEF2F2;color:#E31E24;padding:2px 10px;border-radius:6px;font-size:13px;margin-right:6px'>" + l + (languageLevels && languageLevels[l] ? " · " + languageLevels[l] : "") + "</span>").join("")
+      ? languages.map((l) => "<span style='background:#FEF2F2;color:#E31E24;padding:2px 10px;border-radius:6px;font-size:13px;margin-right:6px'>" + esc(l) + (languageLevels && languageLevels[l] ? " · " + esc(languageLevels[l]) : "") + "</span>").join("")
       : "-";
 
     const photoHtml = photoFileId
-      ? "<img src='" + driveImageUrl(photoFileId) + "' style='width:100px;height:100px;border-radius:8px;object-fit:cover;border:3px solid #FEF2F2' />"
+      ? "<img src='" + esc(driveImageUrl(photoFileId)) + "' style='width:100px;height:100px;border-radius:8px;object-fit:cover;border:3px solid #FEF2F2' />"
       : "";
 
-    const html = "<!DOCTYPE html><html><head><meta charset='utf-8'/><title>ใบสมัครงาน - " + (app.firstNameTh || "") + "</title><style>"
+    const html = "<!DOCTYPE html><html><head><meta charset='utf-8'/><title>ใบสมัครงาน - " + esc(app.firstNameTh || "") + "</title><style>"
       + "@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap'); "
       + "* { margin:0; padding:0; box-sizing:border-box; } "
       + "html { background:#e5e7eb; } "
@@ -199,37 +206,37 @@ function DetailModal({ app, onClose, onDelete }: {
       + "@media print { html { background:white; } .page { margin:0; box-shadow:none; width:100%; } .print-btn { display:none; } body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .header { background:#E31E24 !important; } } "
       + "</style></head><body>"
       + "<div class='page'>"
-      + "<div class='header'><div><h1>ใบสมัครงาน</h1><small>Matching Wealth Co., Ltd.</small></div><div style='text-align:right'><small>" + formatDate(app.createdAt || app.submittedAt || "") + "</small></div></div>"
+      + "<div class='header'><div><h1>ใบสมัครงาน</h1><small>Matching Wealth Co., Ltd.</small></div><div style='text-align:right'><small>" + esc(formatDate(app.createdAt || app.submittedAt || "")) + "</small></div></div>"
       + "<div class='content'>"
       + (photoHtml ? "<div class='photo-row'>" + photoHtml + "</div>" : "")
-      + "<div class='name'><h2>" + (app.prefixTh||"") + (app.firstNameTh||"") + " " + (app.lastNameTh||"") + "</h2>"
-      + ((app.firstNameEn||app.lastNameEn) ? "<p>" + (app.prefixEn||"") + " " + (app.firstNameEn||"") + " " + (app.lastNameEn||"") + "</p>" : "")
-      + (app.nickname ? "<p>ชื่อเล่น: " + app.nickname + "</p>" : "") + "</div>"
+      + "<div class='name'><h2>" + esc(app.prefixTh||"") + esc(app.firstNameTh||"") + " " + esc(app.lastNameTh||"") + "</h2>"
+      + ((app.firstNameEn||app.lastNameEn) ? "<p>" + esc(app.prefixEn||"") + " " + esc(app.firstNameEn||"") + " " + esc(app.lastNameEn||"") + "</p>" : "")
+      + (app.nickname ? "<p>ชื่อเล่น: " + esc(app.nickname) + "</p>" : "") + "</div>"
       + "<div class='section'><div class='section-title'>ข้อมูลส่วนตัว</div>"
-      + "<div class='row'><div class='row-label'>สัญชาติ</div><div class='row-value'>" + (app.nationality||"-") + "</div></div>"
-      + "<div class='row'><div class='row-label'>เลขบัตรประชาชน</div><div class='row-value'>" + (app.idCardNumber||"-") + "</div></div>"
-      + "<div class='row'><div class='row-label'>วันเกิด</div><div class='row-value'>" + (app.birthDate||"-") + "</div></div>"
-      + "<div class='row'><div class='row-label'>อายุ</div><div class='row-value'>" + (calcAge(app.birthDate||"") || "-") + "</div></div>"
-      + "<div class='row'><div class='row-label'>เพศ</div><div class='row-value'>" + (app.gender||"-") + "</div></div>"
-      + "<div class='row'><div class='row-label'>สถานภาพ</div><div class='row-value'>" + (app.maritalStatus||"-") + "</div></div>"
-      + "<div class='row'><div class='row-label'>สถานะทางทหาร</div><div class='row-value'>" + (app.militaryStatus||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>สัญชาติ</div><div class='row-value'>" + esc(app.nationality||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>เลขบัตรประชาชน</div><div class='row-value'>" + esc(app.idCardNumber||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>วันเกิด</div><div class='row-value'>" + esc(app.birthDate||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>อายุ</div><div class='row-value'>" + esc(calcAge(app.birthDate||"") || "-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>เพศ</div><div class='row-value'>" + esc(app.gender||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>สถานภาพ</div><div class='row-value'>" + esc(app.maritalStatus||"-") + "</div></div>"
+      + "<div class='row'><div class='row-label'>สถานะทางทหาร</div><div class='row-value'>" + esc(app.militaryStatus||"-") + "</div></div>"
       + "<div class='row'><div class='row-label'>ช่องทางติดต่อ</div><div class='row-value' style='font-size:12px'>" + socials + "</div></div></div>"
-      + "<div class='section'><div class='section-title'>ที่อยู่</div><p>" + [app.addressLine, app.subDistrict, app.district, app.province, app.postalCode].filter(Boolean).join(" ") + "</p></div>"
+      + "<div class='section'><div class='section-title'>ที่อยู่</div><p>" + esc([app.addressLine, app.subDistrict, app.district, app.province, app.postalCode].filter(Boolean).join(" ")) + "</p></div>"
       + "<div class='section'><div class='section-title'>การศึกษา</div>" + eduHtml + "</div>"
       + "<div class='section'><div class='section-title'>ประสบการณ์ทำงาน</div>" + workHtml + "</div>"
       + "<div class='section'><div class='section-title'>ภาษา</div>" + langHtml + "</div>"
       + "<div class='section'><div class='section-title'>ความสามารถ</div>"
-      + (app.skills ? "<div class='row'><div class='row-label'>ความสามารถพิเศษ</div><div class='row-value'>" + app.skills + "</div></div>" : "")
-      + (app.computerSkills ? "<div class='row'><div class='row-label'>คอมพิวเตอร์</div><div class='row-value'>" + app.computerSkills + "</div></div>" : "")
-      + ((app.itSkills as string) ? "<div class='row'><div class='row-label'>IT</div><div class='row-value'>" + app.itSkills + "</div></div>" : "")
-      + ((app.aiSkills as string) ? "<div class='row'><div class='row-label'>AI</div><div class='row-value'>" + app.aiSkills + "</div></div>" : "")
-      + "<div class='row'><div class='row-label'>ใบขับขี่</div><div class='row-value'>" + (hasDriving ? "มี" + (app.vehicleTypes ? " (" + app.vehicleTypes + ")" : "") : "ไม่มี") + "</div></div></div>"
+      + (app.skills ? "<div class='row'><div class='row-label'>ความสามารถพิเศษ</div><div class='row-value'>" + esc(app.skills) + "</div></div>" : "")
+      + (app.computerSkills ? "<div class='row'><div class='row-label'>คอมพิวเตอร์</div><div class='row-value'>" + esc(app.computerSkills) + "</div></div>" : "")
+      + ((app.itSkills as string) ? "<div class='row'><div class='row-label'>IT</div><div class='row-value'>" + esc(app.itSkills) + "</div></div>" : "")
+      + ((app.aiSkills as string) ? "<div class='row'><div class='row-label'>AI</div><div class='row-value'>" + esc(app.aiSkills) + "</div></div>" : "")
+      + "<div class='row'><div class='row-label'>ใบขับขี่</div><div class='row-value'>" + (hasDriving ? "มี" + (app.vehicleTypes ? " (" + esc(app.vehicleTypes) + ")" : "") : "ไม่มี") + "</div></div></div>"
       + "<div class='section'><div class='section-title'>ทัศนคติและข้อมูลเพิ่มเติม</div>"
-      + (app.workAttitude ? "<div class='row'><div class='row-label'>ทัศนคติ</div><div class='row-value'>" + app.workAttitude + "</div></div>" : "")
-      + (app.strengthWeakness ? "<div class='row'><div class='row-label'>จุดแข็ง/จุดอ่อน</div><div class='row-value'>" + app.strengthWeakness + "</div></div>" : "")
-      + (app.expectedSalary ? "<div class='row'><div class='row-label'>เงินเดือนที่คาดหวัง</div><div class='row-value'>" + app.expectedSalary + " บาท</div></div>" : "")
-      + (app.availableStartDate ? "<div class='row'><div class='row-label'>เริ่มงานได้</div><div class='row-value'>" + app.availableStartDate + "</div></div>" : "")
-      + (app.howDidYouKnow ? "<div class='row'><div class='row-label'>ทราบข่าวจาก</div><div class='row-value'>" + app.howDidYouKnow + "</div></div>" : "") + "</div>"
+      + (app.workAttitude ? "<div class='row'><div class='row-label'>ทัศนคติ</div><div class='row-value'>" + esc(app.workAttitude) + "</div></div>" : "")
+      + (app.strengthWeakness ? "<div class='row'><div class='row-label'>จุดแข็ง/จุดอ่อน</div><div class='row-value'>" + esc(app.strengthWeakness) + "</div></div>" : "")
+      + (app.expectedSalary ? "<div class='row'><div class='row-label'>เงินเดือนที่คาดหวัง</div><div class='row-value'>" + esc(app.expectedSalary) + " บาท</div></div>" : "")
+      + (app.availableStartDate ? "<div class='row'><div class='row-label'>เริ่มงานได้</div><div class='row-value'>" + esc(app.availableStartDate) + "</div></div>" : "")
+      + (app.howDidYouKnow ? "<div class='row'><div class='row-label'>ทราบข่าวจาก</div><div class='row-value'>" + esc(app.howDidYouKnow) + "</div></div>" : "") + "</div>"
       + "<div class='section'><div class='section-title'>บุคคลอ้างอิง</div>" + ecHtml + "</div>"
       + "<div class='footer'>MATCHING WEALTH CO., LTD.</div>"
       + "</div></div>"
@@ -380,7 +387,7 @@ function DetailModal({ app, onClose, onDelete }: {
                   <SectionHeader icon="📎" title="เอกสารแนบ" />
                   <div className="space-y-3">
                     {resumeFileId && (
-                      <a href={driveFileUrl(resumeFileId)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors group">
+                      <a href={driveImageUrl(resumeFileId)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors group">
                         <div className="w-10 h-10 bg-brand-light rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -388,12 +395,12 @@ function DetailModal({ app, onClose, onDelete }: {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 group-hover:text-brand-red transition-colors">เรซูเม่</p>
-                          <p className="text-xs text-gray-400">คลิกเพื่อเปิดใน Google Drive</p>
+                          <p className="text-xs text-gray-400">คลิกเพื่อเปิดไฟล์</p>
                         </div>
                       </a>
                     )}
                     {idCardFileId && (
-                      <a href={driveFileUrl(idCardFileId)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors group">
+                      <a href={driveImageUrl(idCardFileId)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors group">
                         <div className="w-10 h-10 bg-brand-light rounded-lg flex items-center justify-center">
                           <svg className="w-5 h-5 text-brand-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />
@@ -401,7 +408,7 @@ function DetailModal({ app, onClose, onDelete }: {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 group-hover:text-brand-red transition-colors">สำเนาบัตรประชาชน</p>
-                          <p className="text-xs text-gray-400">คลิกเพื่อเปิดใน Google Drive</p>
+                          <p className="text-xs text-gray-400">คลิกเพื่อเปิดไฟล์</p>
                         </div>
                       </a>
                     )}

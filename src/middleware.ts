@@ -1,23 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { verifySession } from "./lib/session";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const session = request.cookies.get("mw_session");
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin")) {
-    if (!session) {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-    try {
-      const data = JSON.parse(session.value);
-      if (data.role !== "admin") {
-        return NextResponse.redirect(new URL("/", request.url));
-      }
-    } catch {
+    const data = session ? await verifySession(session.value) : null;
+    if (!data || data.role !== "admin") {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }

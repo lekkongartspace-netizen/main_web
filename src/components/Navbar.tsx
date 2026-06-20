@@ -55,6 +55,7 @@ export default function Navbar({ session }: NavbarProps) {
       ? [
           { href: "/admin", label: "จัดการ PIN" },
           { href: "/admin/applications", label: "ใบสมัคร" },
+          { href: "/admin/handover", label: "ส่งมอบงาน" },
         ]
       : []),
   ];

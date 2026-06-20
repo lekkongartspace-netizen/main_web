@@ -7,6 +7,7 @@ import Toggle from "@/components/Toggle";
 import FlatpickrInput from "@/components/FlatpickrInput";
 import SaveOverlay from "@/components/SaveOverlay";
 import { calcAge } from "@/lib/calcAge";
+import { validateFile, MAX_TOTAL_BYTES, MAX_TOTAL_MB } from "@/lib/uploadLimits";
 
 interface Props {
   session: { name: string; role: "admin" | "user" };
@@ -121,6 +122,8 @@ export default function EditClient({ session }: Props) {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const err = validateFile(file, "photo");
+    if (err) { alert(err); e.target.value = ""; return; }
     setPhotoFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setPhotoPreview(ev.target?.result as string);
@@ -145,6 +148,11 @@ export default function EditClient({ session }: Props) {
   };
 
   const handleSave = async () => {
+    const totalBytes = (photoFile?.size || 0) + (resumeFile?.size || 0) + (idCardFile?.size || 0);
+    if (totalBytes > MAX_TOTAL_BYTES) {
+      alert("ไฟล์ใหม่ที่อัปโหลดรวมกันใหญ่เกิน " + MAX_TOTAL_MB + "MB กรุณาบีบอัดก่อน");
+      return;
+    }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -157,13 +165,7 @@ export default function EditClient({ session }: Props) {
       if (idCardFile) fd.append("idCard", idCardFile);
       fd.append("existingFiles", JSON.stringify(existingFiles));
 
-      const res = await fetch("/api/applications", { method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: appId,
-          ...Object.fromEntries(Object.entries(form).map(([k, v]) => [k, typeof v === "object" ? JSON.stringify(v) : String(v)])),
-          files: existingFiles,
-        }),
-      });
+      const res = await fetch("/api/applications", { method: "PUT", body: fd });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       sessionStorage.removeItem("editApp");
       router.push("/admin/applications");
@@ -335,14 +337,14 @@ export default function EditClient({ session }: Props) {
             <div onClick={() => resumeRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand-red transition-all">
               {resumeFile ? <span className="text-gray-700 font-medium">{resumeFile.name}</span> : <p className="text-gray-500 text-sm">{existingFiles.resume ? "เรซูเม่เดิมมีอยู่แล้ว — คลิกเพื่อเปลี่ยน" : "คลิกเพื่ออัพโหลด"}</p>}
             </div>
-            <input ref={resumeRef} type="file" accept=".pdf,.doc,.docx" onChange={(e) => { const f = e.target.files?.[0]; if (f) setResumeFile(f); }} className="hidden" />
+            <input ref={resumeRef} type="file" accept=".pdf,.doc,.docx" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const err = validateFile(f, "resume"); if (err) { alert(err); e.target.value = ""; return; } setResumeFile(f); }} className="hidden" />
           </div>
           <div>
             <label className="label">เปลี่ยนสำเนาบัตรประชาชน</label>
             <div onClick={() => idCardRef.current?.click()} className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-brand-red transition-all">
               {idCardFile ? <span className="text-gray-700 font-medium">{idCardFile.name}</span> : <p className="text-gray-500 text-sm">{existingFiles.idCard ? "สำเนาเดิมมีอยู่แล้ว — คลิกเพื่อเปลี่ยน" : "คลิกเพื่ออัพโหลด"}</p>}
             </div>
-            <input ref={idCardRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { const f = e.target.files?.[0]; if (f) setIdCardFile(f); }} className="hidden" />
+            <input ref={idCardRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const err = validateFile(f, "idCard"); if (err) { alert(err); e.target.value = ""; return; } setIdCardFile(f); }} className="hidden" />
           </div>
         </div>
       );

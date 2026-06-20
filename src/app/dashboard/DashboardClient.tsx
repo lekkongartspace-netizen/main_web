@@ -64,13 +64,23 @@ export default function DashboardClient({ session }: Props) {
             </>
           )}
 
-          <div className="card bg-gradient-to-br from-brand-red to-brand-darkred text-white">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
-              <span className="text-xl">🏠</span>
-            </div>
-            <h3 className="font-semibold">Project Handover</h3>
-            <p className="text-sm text-white/70 mt-1">เร็ว ๆ นี้</p>
-          </div>
+          {isAdmin ? (
+            <a href="/admin/handover" className="card-hover group cursor-pointer bg-gradient-to-br from-brand-red to-brand-darkred text-white">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
+                <span className="text-xl">🏠</span>
+              </div>
+              <h3 className="font-semibold">Project Handover</h3>
+              <p className="text-sm text-white/80 mt-1">สร้างเอกสารส่งมอบงานให้ลูกค้า</p>
+            </a>
+          ) : (
+            <a href="/handover" className="card-hover group cursor-pointer bg-gradient-to-br from-brand-red to-brand-darkred text-white">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
+                <span className="text-xl">🏠</span>
+              </div>
+              <h3 className="font-semibold">Project Handover</h3>
+              <p className="text-sm text-white/80 mt-1">กรอกรหัสโครงการเพื่อดูเอกสารส่งมอบงาน</p>
+            </a>
+          )}
         </div>
 
         <div className="slide-up" style={{ animationDelay: "0.2s" }}>
@@ -81,35 +91,29 @@ export default function DashboardClient({ session }: Props) {
                 <span className="text-3xl mb-3 block">{item.icon}</span>
                 <h3 className="font-semibold text-gray-900">{item.label}</h3>
                 <p className="text-sm text-gray-500 mt-1">{item.desc}</p>
-                <div className="mt-3 flex items-center gap-1.5">
-                  <div className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg className="w-2.5 h-2.5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-xs font-medium text-green-600">Completed</span>
-                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="slide-up" style={{ animationDelay: "0.3s" }}>
-          <h2 className="section-title mb-4">อาคารในโครงการ</h2>
-          <div className="card overflow-hidden">
-            <div className="divide-y divide-gray-50">
-              {buildings.map((b, i) => (
-                <div key={b} className="flex items-center justify-between py-3 px-1">
-                  <div className="flex items-center gap-3">
-                    <span className="w-7 h-7 bg-brand-light rounded-full flex items-center justify-center text-xs font-bold text-brand-red">{i + 1}</span>
-                    <span className="text-gray-800 font-medium">{b}</span>
+        {session && (
+          <div className="slide-up" style={{ animationDelay: "0.3s" }}>
+            <h2 className="section-title mb-4">อาคารในโครงการ</h2>
+            <div className="card overflow-hidden">
+              <div className="divide-y divide-gray-50">
+                {buildings.map((b, i) => (
+                  <div key={b} className="flex items-center justify-between py-3 px-1">
+                    <div className="flex items-center gap-3">
+                      <span className="w-7 h-7 bg-brand-light rounded-full flex items-center justify-center text-xs font-bold text-brand-red">{i + 1}</span>
+                      <span className="text-gray-800 font-medium">{b}</span>
+                    </div>
+                    <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">Completed</span>
                   </div>
-                  <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-medium">Completed</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-6 text-center text-xs text-gray-400 pb-8">MATCHING WEALTH CO., LTD.</div>
       </main>
