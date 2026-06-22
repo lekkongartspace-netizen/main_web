@@ -56,6 +56,14 @@ export interface AcceptItem {
   label: string;
 }
 
+// Per-checklist-item detail the client fills after ticking an accept item:
+// a photo, a pass/fail result and a free-text note. Keyed by AcceptItem.id.
+export interface AcceptDetail {
+  fileId: string;
+  result: "" | "pass" | "fail";
+  note: string;
+}
+
 // Inspection checklist — ตรวจรับงานแต่ละจุด: ชื่อส่วน + รูป (ถ่าย/แนบ) + ผ่าน/ไม่ผ่าน + หมายเหตุ.
 // Photos are referenced by Drive fileId only (same pattern as other images here).
 export interface InspectionItem {
@@ -146,6 +154,7 @@ export interface HandoverDoc {
   clientResult: "" | "pass" | "fail";
   clientReason: string;
   clientChecked: Record<string, boolean>; // acceptItem.id -> checked
+  clientAcceptDetails: Record<string, AcceptDetail>; // acceptItem.id -> photo/result/note
   clientNote: string;
   clientSignature: string; // PNG data URL
   clientSignDate: string;
@@ -234,6 +243,7 @@ export function defaultHandover(id: string, shareToken: string): HandoverDoc {
     clientResult: "",
     clientReason: "",
     clientChecked: {},
+    clientAcceptDetails: {},
     clientNote: "",
     clientSignature: "",
     clientSignDate: "",
@@ -259,6 +269,7 @@ export function normalizeHandover(raw: Partial<HandoverDoc> & { id: string; shar
     acceptItems: raw.acceptItems?.length ? raw.acceptItems : base.acceptItems,
     inspectionItems: raw.inspectionItems ?? base.inspectionItems,
     clientChecked: raw.clientChecked ?? {},
+    clientAcceptDetails: raw.clientAcceptDetails ?? {},
   };
 }
 

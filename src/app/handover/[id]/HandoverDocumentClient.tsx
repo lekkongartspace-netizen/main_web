@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import SignaturePad from "@/components/SignaturePad";
 import { compressImage } from "@/lib/imageCompress";
-import { HandoverDoc, InspectionItem, handoverImageUrl, formatThaiDate, uid } from "@/lib/handoverTypes";
+import { HandoverDoc, InspectionItem, AcceptItem, AcceptDetail, handoverImageUrl, formatThaiDate, uid } from "@/lib/handoverTypes";
 
 interface Props {
   doc: HandoverDoc;
@@ -171,6 +171,8 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
   const [clientSignature, setClientSignature] = useState(doc.clientSignature || "");
   const [checked, setChecked] = useState<Record<string, boolean>>(doc.clientChecked || {});
   const [inspection, setInspection] = useState<InspectionItem[]>(doc.inspectionItems || []);
+  const [acceptList, setAcceptList] = useState<AcceptItem[]>(doc.acceptItems || []);
+  const [acceptDetails, setAcceptDetails] = useState<Record<string, AcceptDetail>>(doc.clientAcceptDetails || {});
 
   const addInspection = () =>
     setInspection((p) => [...p, { id: uid("in_"), name: "", fileId: "", result: "", note: "" }]);
@@ -178,6 +180,11 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
     setInspection((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   const removeInspection = (id: string) =>
     setInspection((p) => p.filter((x) => x.id !== id));
+
+  const removeAccept = (id: string) => setAcceptList((p) => p.filter((x) => x.id !== id));
+  const detailOf = (id: string): AcceptDetail => acceptDetails[id] || { fileId: "", result: "", note: "" };
+  const updateAcceptDetail = (id: string, patch: Partial<AcceptDetail>) =>
+    setAcceptDetails((p) => ({ ...p, [id]: { ...detailOf(id), ...patch } }));
 
   const toggle = (id: string) => editing && setChecked((p) => ({ ...p, [id]: !p[id] }));
   const handlePrint = () => window.print();
@@ -200,6 +207,8 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
           clientNote,
           clientSignature,
           clientChecked: checked,
+          acceptItems: acceptList,
+          clientAcceptDetails: acceptDetails,
           inspectionItems: inspection,
           clientSignDate: new Date().toISOString(),
         }),
@@ -222,7 +231,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
   const hasBuildingDetails = doc.buildings.some((b) => b.imageFileId || b.scopes.length);
   const hasDetailImgs = doc.detailImages.some((d) => d.fileId);
   const hasAppendix = doc.appendixItems.length > 0;
-  const hasAccept = doc.acceptItems.length > 0;
+  const hasAccept = acceptList.length > 0;
 
   const statusBadge = (ok: boolean, okText = "เสร็จแล้ว", noText = "ค้าง") => (
     <span className={"text-xs px-2.5 py-1 rounded-full font-medium " + (ok ? "bg-green-50 text-green-700" : "bg-yellow-100 text-yellow-700")}>
@@ -383,22 +392,66 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
           {hasAccept && (
             <div className="mb-6">
               <p className="text-sm font-bold text-gray-700 mb-1">รายการตรวจรับ</p>
-              {editing && <p className="no-print text-xs text-gray-500 mb-2">แตะที่แต่ละข้อเพื่อติ๊กว่าตรวจแล้ว</p>}
+              {editing && <p className="no-print text-xs text-gray-500 mb-2">แตะที่แต่ละข้อเพื่อติ๊กว่าตรวจแล้ว · เมื่อติ๊กจะให้แนบรูป เลือกผ่าน/ไม่ผ่าน และใส่รายละเอียด · ลบข้อที่ไม่มีได้</p>}
               <div className="space-y-2">
-                {doc.acceptItems.map((item, i) => {
+                {acceptList.map((item, i) => {
                   const on = !!checked[item.id];
+                  const d = detailOf(item.id);
                   return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      disabled={!editing}
-                      onClick={() => toggle(item.id)}
-                      className={"w-full flex items-center gap-3 text-left rounded-xl px-4 py-3 border transition-colors " + (on ? "border-green-300 bg-green-50" : "border-gray-200 bg-white") + (editing ? " hover:border-brand-red cursor-pointer" : " cursor-default")}
-                    >
-                      <span className="w-6 h-6 bg-brand-light text-brand-red rounded-full flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
-                      <span className="flex-1 text-sm text-gray-800">{item.label}</span>
-                      <Check on={on} />
-                    </button>
+                    <div key={item.id} className={"rounded-xl border transition-colors " + (on ? "border-green-300 bg-green-50" : "border-gray-200 bg-white")}>
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        <button
+                          type="button"
+                          disabled={!editing}
+                          onClick={() => toggle(item.id)}
+                          className={"flex items-center gap-3 text-left flex-1 min-w-0 " + (editing ? "cursor-pointer" : "cursor-default")}
+                        >
+                          <span className="w-6 h-6 bg-brand-light text-brand-red rounded-full flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                          <span className="flex-1 text-sm text-gray-800">{item.label}</span>
+                          <Check on={on} />
+                        </button>
+                        {editing && (
+                          <button type="button" onClick={() => removeAccept(item.id)} className="no-print shrink-0 text-gray-400 hover:text-red-500" aria-label="ลบรายการ">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Expanded detail — shows once the item is ticked */}
+                      {on && (
+                        editing ? (
+                          <div className="px-4 pb-4 pt-1 border-t border-green-200/60 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="label">รูปประกอบ</label>
+                              <InspectionPhoto docId={doc.id} token={token} fileId={d.fileId} onChange={(id) => updateAcceptDetail(item.id, { fileId: id })} />
+                            </div>
+                            <div>
+                              <label className="label">ผลการตรวจ</label>
+                              <div className="flex gap-2">
+                                <button type="button" onClick={() => updateAcceptDetail(item.id, { result: "pass" })} className={"flex-1 rounded-lg py-2 text-sm font-semibold border-2 transition-colors " + (d.result === "pass" ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 bg-white text-gray-500")}>✔ ผ่าน</button>
+                                <button type="button" onClick={() => updateAcceptDetail(item.id, { result: "fail" })} className={"flex-1 rounded-lg py-2 text-sm font-semibold border-2 transition-colors " + (d.result === "fail" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 bg-white text-gray-500")}>✘ ไม่ผ่าน</button>
+                              </div>
+                              <label className="label mt-3">รายละเอียด / หมายเหตุ</label>
+                              <input value={d.note} onChange={(e) => updateAcceptDetail(item.id, { note: e.target.value })} className="input-field" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" />
+                            </div>
+                          </div>
+                        ) : (
+                          (d.fileId || d.result || d.note) && (
+                            <div className="px-4 pb-4 pt-1 border-t border-green-200/60">
+                              {d.fileId && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={handoverImageUrl(d.fileId)} alt={item.label} className="w-full sm:w-64 h-44 object-cover rounded-lg mb-2" />
+                              )}
+                              <div className="flex items-center gap-2">
+                                {d.result === "pass" && <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">✔ ผ่าน</span>}
+                                {d.result === "fail" && <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-red-50 text-red-700">✘ ไม่ผ่าน</span>}
+                              </div>
+                              {d.note && <p className="text-xs text-gray-600 mt-1.5">รายละเอียด: {d.note}</p>}
+                            </div>
+                          )
+                        )
+                      )}
+                    </div>
                   );
                 })}
               </div>

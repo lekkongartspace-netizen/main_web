@@ -43,6 +43,8 @@ function collectFileIds(doc: Record<string, unknown>): string[] {
   appendix?.forEach((a) => a.fileId && ids.push(a.fileId));
   const inspection = doc.inspectionItems as Array<{ fileId?: string }> | undefined;
   inspection?.forEach((x) => x.fileId && ids.push(x.fileId));
+  const acceptDetails = doc.clientAcceptDetails as Record<string, { fileId?: string }> | undefined;
+  if (acceptDetails) Object.values(acceptDetails).forEach((d) => d?.fileId && ids.push(d.fileId));
   return ids;
 }
 
