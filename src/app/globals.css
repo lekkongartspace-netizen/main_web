@@ -103,6 +103,9 @@
   }
   .hv-avoid-break { break-inside: avoid; page-break-inside: avoid; }
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  /* No paper margin — each .hv-page already has its own inner padding. */
-  @page { margin: 0; }
+  /* Top/bottom paper margin so that when a long .hv-page spills onto a second
+     physical page, the continued content keeps breathing room from the paper
+     edges (the card's own inner padding only covers its first/last edge).
+     Left/right stay 0 — horizontal spacing comes from the card's own padding. */
+  @page { margin: 14mm 0; }
 }

@@ -126,7 +126,7 @@ function InspectionPhoto({
       <div className="relative border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 h-40 flex items-center justify-center">
         {fileId ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={handoverImageUrl(fileId)} alt="" className="w-full h-full object-cover" />
+          <img src={handoverImageUrl(fileId)} alt="" className="max-w-full max-h-full object-contain" />
         ) : (
           <span className="text-xs text-gray-400 px-2 text-center">ยังไม่มีรูป — กดถ่ายรูปหรือแนบรูป</span>
         )}
@@ -440,7 +440,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
                             <div className="px-4 pb-4 pt-1 border-t border-green-200/60">
                               {d.fileId && (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={handoverImageUrl(d.fileId)} alt={item.label} className="w-full sm:w-64 h-44 object-cover rounded-lg mb-2" />
+                                <img src={handoverImageUrl(d.fileId)} alt={item.label} className="max-w-full max-h-96 w-auto h-auto object-contain rounded-lg mb-2" />
                               )}
                               <div className="flex items-center gap-2">
                                 {d.result === "pass" && <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">✔ ผ่าน</span>}
@@ -507,7 +507,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
                   <div key={x.id} className="hv-avoid-break rounded-xl overflow-hidden border border-gray-100">
                     {x.fileId ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={handoverImageUrl(x.fileId)} alt={x.name} className="w-full h-44 object-cover" />
+                      <img src={handoverImageUrl(x.fileId)} alt={x.name} className="w-full h-auto max-h-96 object-contain bg-gray-50" />
                     ) : (
                       <div className="w-full h-44 bg-gray-50 flex items-center justify-center text-gray-300 text-sm">ไม่มีรูป</div>
                     )}
