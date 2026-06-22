@@ -129,6 +129,8 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
   const hasDetailImgs = doc.detailImages.some((d) => d.fileId);
   const hasAppendix = doc.appendixItems.length > 0;
   const hasAccept = doc.acceptItems.length > 0;
+  const inspectionItems = doc.inspectionItems || [];
+  const hasInspection = inspectionItems.length > 0;
 
   const statusBadge = (ok: boolean, okText = "เสร็จแล้ว", noText = "ค้าง") => (
     <span className={"text-xs px-2.5 py-1 rounded-full font-medium " + (ok ? "bg-green-50 text-green-700" : "bg-yellow-100 text-yellow-700")}>
@@ -327,6 +329,38 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
             <textarea value={clientNote} onChange={(e) => setClientNote(e.target.value)} disabled={!editing} className="input-field" rows={2} placeholder="หมายเหตุ (ถ้ามี)" />
           </div>
         </Page>
+
+        {/* Inspection items (ตรวจรับงานพร้อมรูป) */}
+        {hasInspection && (
+          <Page>
+            <PageHead title="ผลการตรวจรับงาน (รายจุด)" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {inspectionItems.map((x, i) => (
+                <div key={x.id} className="hv-avoid-break rounded-xl overflow-hidden border border-gray-100">
+                  {x.fileId ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={handoverImageUrl(x.fileId)} alt={x.name} className="w-full h-44 object-cover" />
+                  ) : (
+                    <div className="w-full h-44 bg-gray-50 flex items-center justify-center text-gray-300 text-sm">ไม่มีรูป</div>
+                  )}
+                  <div className="p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-bold text-gray-900">{i + 1}. {x.name || "—"}</span>
+                      {x.result === "pass" ? (
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">✔ ผ่าน</span>
+                      ) : x.result === "fail" ? (
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-red-50 text-red-700">✘ ไม่ผ่าน</span>
+                      ) : (
+                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-gray-100 text-gray-500">รอตรวจ</span>
+                      )}
+                    </div>
+                    {x.note && <p className="text-xs text-gray-600 mt-1.5">หมายเหตุ: {x.note}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Page>
+        )}
 
         {/* 6. Assets / keys */}
         <Page>

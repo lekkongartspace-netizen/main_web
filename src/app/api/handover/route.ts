@@ -39,6 +39,10 @@ function collectFileIds(doc: Record<string, unknown>): string[] {
   buildings?.forEach((b) => b.imageFileId && ids.push(b.imageFileId));
   const details = doc.detailImages as Array<{ fileId?: string }> | undefined;
   details?.forEach((d) => d.fileId && ids.push(d.fileId));
+  const appendix = doc.appendixItems as Array<{ fileId?: string }> | undefined;
+  appendix?.forEach((a) => a.fileId && ids.push(a.fileId));
+  const inspection = doc.inspectionItems as Array<{ fileId?: string }> | undefined;
+  inspection?.forEach((x) => x.fileId && ids.push(x.fileId));
   return ids;
 }
 

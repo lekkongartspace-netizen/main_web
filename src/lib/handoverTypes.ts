@@ -56,6 +56,16 @@ export interface AcceptItem {
   label: string;
 }
 
+// Inspection checklist — ตรวจรับงานแต่ละจุด: ชื่อส่วน + รูป (ถ่าย/แนบ) + ผ่าน/ไม่ผ่าน + หมายเหตุ.
+// Photos are referenced by Drive fileId only (same pattern as other images here).
+export interface InspectionItem {
+  id: string;
+  name: string; // ส่วนที่ตรวจ
+  fileId: string; // รูปประกอบ (ถ่ายจากกล้องหรือแนบไฟล์)
+  result: "" | "pass" | "fail";
+  note: string;
+}
+
 // Section 2 — รายละเอียดงานที่ส่งมอบ (auto-numbered: work item + detail + status)
 export interface Deliverable {
   id: string;
@@ -122,6 +132,9 @@ export interface HandoverDoc {
 
   // Acceptance checklist the client ticks
   acceptItems: AcceptItem[];
+
+  // Inspection — ตรวจรับงานแต่ละจุด พร้อมรูป + ผ่าน/ไม่ผ่าน + หมายเหตุ
+  inspectionItems: InspectionItem[];
 
   // Contractor (deliverer) signature
   contractorSignName: string;
@@ -213,6 +226,7 @@ export function defaultHandover(id: string, shareToken: string): HandoverDoc {
       { id: uid("ac_"), label: "งานตกแต่งภายใน" },
       { id: uid("ac_"), label: "ความสะอาดและการเก็บงานโดยรวม" },
     ],
+    inspectionItems: [],
     contractorSignName: "",
     contractorSignature: "",
     contractorSignDate: "",
@@ -243,6 +257,7 @@ export function normalizeHandover(raw: Partial<HandoverDoc> & { id: string; shar
     punchList: raw.punchList ?? base.punchList,
     assets: raw.assets ?? base.assets,
     acceptItems: raw.acceptItems?.length ? raw.acceptItems : base.acceptItems,
+    inspectionItems: raw.inspectionItems ?? base.inspectionItems,
     clientChecked: raw.clientChecked ?? {},
   };
 }
