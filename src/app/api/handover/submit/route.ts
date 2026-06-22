@@ -41,6 +41,21 @@ export async function POST(req: NextRequest) {
     const clientChecked =
       body.clientChecked && typeof body.clientChecked === "object" ? body.clientChecked : {};
 
+    // Inspection items the client filled in (each: name + photo + pass/fail + note).
+    // Sanitize every field so the share link can't inject arbitrary data.
+    const rawInspection = Array.isArray(body.inspectionItems) ? body.inspectionItems : [];
+    const inspectionItems = rawInspection.slice(0, 100).map((it) => {
+      const x = (it && typeof it === "object" ? it : {}) as Record<string, unknown>;
+      const r = x.result === "pass" || x.result === "fail" ? x.result : "";
+      return {
+        id: String(x.id ?? ""),
+        name: String(x.name ?? ""),
+        fileId: String(x.fileId ?? ""),
+        result: r,
+        note: String(x.note ?? ""),
+      };
+    });
+
     // Only the client-controlled fields are written back; everything the admin
     // authored is left untouched.
     const merged = {
@@ -50,6 +65,7 @@ export async function POST(req: NextRequest) {
       clientReason: String(body.clientReason ?? ""),
       clientChecked,
       clientNote: String(body.clientNote ?? ""),
+      inspectionItems,
       clientSignature: String(body.clientSignature ?? ""),
       clientSignDate: String(body.clientSignDate ?? ""),
       clientSubmittedAt: new Date().toISOString(),

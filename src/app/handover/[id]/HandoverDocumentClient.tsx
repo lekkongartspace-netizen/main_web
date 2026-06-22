@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import SignaturePad from "@/components/SignaturePad";
-import { HandoverDoc, handoverImageUrl, formatThaiDate } from "@/lib/handoverTypes";
+import { compressImage } from "@/lib/imageCompress";
+import { HandoverDoc, InspectionItem, handoverImageUrl, formatThaiDate, uid } from "@/lib/handoverTypes";
 
 interface Props {
   doc: HandoverDoc;
@@ -73,6 +74,90 @@ function InfoLine({ label, value }: { label: string; value?: string }) {
   );
 }
 
+// Client-side inspection photo uploader: compress in the browser, then POST one
+// image to the token-gated public upload endpoint. Offers both "ถ่ายรูป" (opens
+// the camera) and "แนบรูป" (gallery / file picker).
+function InspectionPhoto({
+  docId,
+  token,
+  fileId,
+  onChange,
+}: {
+  docId: string;
+  token: string;
+  fileId: string;
+  onChange: (id: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setErr("");
+    setBusy(true);
+    try {
+      const { file: compressed, error } = await compressImage(file);
+      if (error) {
+        setErr(error);
+        setBusy(false);
+        return;
+      }
+      const fd = new FormData();
+      fd.append("file", compressed);
+      fd.append("id", docId);
+      fd.append("token", token);
+      const res = await fetch("/api/handover/client-upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
+      onChange(data.fileId as string);
+    } catch (e2) {
+      setErr(e2 instanceof Error ? e2.message : "อัปโหลดไม่สำเร็จ");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="relative border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 h-40 flex items-center justify-center">
+        {fileId ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={handoverImageUrl(fileId)} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-xs text-gray-400 px-2 text-center">ยังไม่มีรูป — กดถ่ายรูปหรือแนบรูป</span>
+        )}
+        {busy && (
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+            <div className="h-7 w-7 border-gray-200 border-t-brand-red rounded-full" style={{ animation: "spin 0.7s linear infinite", borderWidth: "3px" }} />
+          </div>
+        )}
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} className="hidden" />
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={handleFile} className="hidden" />
+      <div className="grid grid-cols-2 gap-2 mt-2">
+        <button type="button" disabled={busy} onClick={() => cameraRef.current?.click()} className="btn-secondary text-sm flex items-center justify-center gap-1.5 py-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          ถ่ายรูป
+        </button>
+        <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className="btn-secondary text-sm flex items-center justify-center gap-1.5 py-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+          แนบรูป
+        </button>
+      </div>
+      <div className="flex items-center justify-between mt-1.5">
+        {err ? <span className="text-xs text-red-500">{err}</span> : <span />}
+        {fileId && (
+          <button type="button" onClick={() => onChange("")} className="text-xs text-gray-400 hover:text-brand-red">ลบรูป</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function HandoverDocumentClient({ doc, token }: Props) {
   const alreadyDone = !!doc.clientSubmittedAt;
   const [editing, setEditing] = useState(!alreadyDone);
@@ -85,6 +170,14 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
   const [clientNote, setClientNote] = useState(doc.clientNote || "");
   const [clientSignature, setClientSignature] = useState(doc.clientSignature || "");
   const [checked, setChecked] = useState<Record<string, boolean>>(doc.clientChecked || {});
+  const [inspection, setInspection] = useState<InspectionItem[]>(doc.inspectionItems || []);
+
+  const addInspection = () =>
+    setInspection((p) => [...p, { id: uid("in_"), name: "", fileId: "", result: "", note: "" }]);
+  const updateInspection = (id: string, patch: Partial<InspectionItem>) =>
+    setInspection((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  const removeInspection = (id: string) =>
+    setInspection((p) => p.filter((x) => x.id !== id));
 
   const toggle = (id: string) => editing && setChecked((p) => ({ ...p, [id]: !p[id] }));
   const handlePrint = () => window.print();
@@ -107,6 +200,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
           clientNote,
           clientSignature,
           clientChecked: checked,
+          inspectionItems: inspection,
           clientSignDate: new Date().toISOString(),
         }),
       });
@@ -129,8 +223,6 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
   const hasDetailImgs = doc.detailImages.some((d) => d.fileId);
   const hasAppendix = doc.appendixItems.length > 0;
   const hasAccept = doc.acceptItems.length > 0;
-  const inspectionItems = doc.inspectionItems || [];
-  const hasInspection = inspectionItems.length > 0;
 
   const statusBadge = (ok: boolean, okText = "เสร็จแล้ว", noText = "ค้าง") => (
     <span className={"text-xs px-2.5 py-1 rounded-full font-medium " + (ok ? "bg-green-50 text-green-700" : "bg-yellow-100 text-yellow-700")}>
@@ -313,6 +405,78 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
             </div>
           )}
 
+          {/* Per-topic inspection: client adds topics, each with pass/fail + photo + detail */}
+          <div className="mb-6">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <p className="text-sm font-bold text-gray-700">ตรวจรับรายหัวข้อ (พร้อมรูป)</p>
+              {editing && <ActionTag />}
+            </div>
+            {editing && (
+              <p className="no-print text-xs text-gray-500 mb-3">เพิ่มหัวข้อที่ต้องการตรวจ · เลือกผ่าน/ไม่ผ่าน · ถ่ายรูปหรือแนบรูป · ใส่รายละเอียด · ลบหัวข้อที่ไม่มีได้</p>
+            )}
+
+            {editing ? (
+              <>
+                <div className="space-y-4">
+                  {inspection.map((x, i) => (
+                    <div key={x.id} className="border border-gray-200 rounded-xl p-4 relative bg-white">
+                      <button type="button" onClick={() => removeInspection(x.id)} className="no-print absolute top-3 right-3 text-gray-400 hover:text-red-500" aria-label="ลบหัวข้อ">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                      <p className="text-xs font-semibold text-gray-400 mb-3">หัวข้อที่ {i + 1}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="label">รูปประกอบ</label>
+                          <InspectionPhoto docId={doc.id} token={token} fileId={x.fileId} onChange={(id) => updateInspection(x.id, { fileId: id })} />
+                        </div>
+                        <div>
+                          <label className="label">ชื่อหัวข้อ / ส่วนที่ตรวจ</label>
+                          <input value={x.name} onChange={(e) => updateInspection(x.id, { name: e.target.value })} className="input-field" placeholder="เช่น ห้องน้ำชั้น 2 / สีผนัง" />
+                          <label className="label mt-3">ผลการตรวจ</label>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => updateInspection(x.id, { result: "pass" })} className={"flex-1 rounded-lg py-2 text-sm font-semibold border-2 transition-colors " + (x.result === "pass" ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 text-gray-500")}>✔ ผ่าน</button>
+                            <button type="button" onClick={() => updateInspection(x.id, { result: "fail" })} className={"flex-1 rounded-lg py-2 text-sm font-semibold border-2 transition-colors " + (x.result === "fail" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-200 text-gray-500")}>✘ ไม่ผ่าน</button>
+                          </div>
+                          <label className="label mt-3">รายละเอียด / หมายเหตุ</label>
+                          <input value={x.note} onChange={(e) => updateInspection(x.id, { note: e.target.value })} className="input-field" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={addInspection} className="no-print btn-secondary w-full mt-3">+ เพิ่มหัวข้อตรวจรับ</button>
+              </>
+            ) : inspection.length === 0 ? (
+              <p className="text-sm text-gray-400">—</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {inspection.map((x, i) => (
+                  <div key={x.id} className="hv-avoid-break rounded-xl overflow-hidden border border-gray-100">
+                    {x.fileId ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={handoverImageUrl(x.fileId)} alt={x.name} className="w-full h-44 object-cover" />
+                    ) : (
+                      <div className="w-full h-44 bg-gray-50 flex items-center justify-center text-gray-300 text-sm">ไม่มีรูป</div>
+                    )}
+                    <div className="p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-bold text-gray-900">{i + 1}. {x.name || "—"}</span>
+                        {x.result === "pass" ? (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">✔ ผ่าน</span>
+                        ) : x.result === "fail" ? (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-red-50 text-red-700">✘ ไม่ผ่าน</span>
+                        ) : (
+                          <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-gray-100 text-gray-500">รอตรวจ</span>
+                        )}
+                      </div>
+                      {x.note && <p className="text-xs text-gray-600 mt-1.5">รายละเอียด: {x.note}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <p className="text-sm font-bold text-gray-700 mb-2">ผลการตรวจรับ {editing && <span className="text-red-500">*</span>}</p>
           <div className="flex gap-3 mb-4">
             <button type="button" disabled={!editing} onClick={() => setClientResult("pass")} className={"flex-1 rounded-xl py-3 font-semibold border-2 transition-colors " + (clientResult === "pass" ? "border-green-500 bg-green-50 text-green-700" : "border-gray-200 text-gray-500")}>✔ ผ่าน</button>
@@ -329,38 +493,6 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
             <textarea value={clientNote} onChange={(e) => setClientNote(e.target.value)} disabled={!editing} className="input-field" rows={2} placeholder="หมายเหตุ (ถ้ามี)" />
           </div>
         </Page>
-
-        {/* Inspection items (ตรวจรับงานพร้อมรูป) */}
-        {hasInspection && (
-          <Page>
-            <PageHead title="ผลการตรวจรับงาน (รายจุด)" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {inspectionItems.map((x, i) => (
-                <div key={x.id} className="hv-avoid-break rounded-xl overflow-hidden border border-gray-100">
-                  {x.fileId ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={handoverImageUrl(x.fileId)} alt={x.name} className="w-full h-44 object-cover" />
-                  ) : (
-                    <div className="w-full h-44 bg-gray-50 flex items-center justify-center text-gray-300 text-sm">ไม่มีรูป</div>
-                  )}
-                  <div className="p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-bold text-gray-900">{i + 1}. {x.name || "—"}</span>
-                      {x.result === "pass" ? (
-                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-green-50 text-green-700">✔ ผ่าน</span>
-                      ) : x.result === "fail" ? (
-                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-red-50 text-red-700">✘ ไม่ผ่าน</span>
-                      ) : (
-                        <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-gray-100 text-gray-500">รอตรวจ</span>
-                      )}
-                    </div>
-                    {x.note && <p className="text-xs text-gray-600 mt-1.5">หมายเหตุ: {x.note}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Page>
-        )}
 
         {/* 6. Assets / keys */}
         <Page>

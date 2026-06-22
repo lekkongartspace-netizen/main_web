@@ -24,7 +24,6 @@ import {
   DetailImage,
   Deliverable,
   AppendixItem,
-  InspectionItem,
 } from "@/lib/handoverTypes";
 
 interface Props {
@@ -328,14 +327,6 @@ export default function HandoverEditClient({ session }: Props) {
   const removeAccept = (id: string) =>
     setDoc((p) => ({ ...p, acceptItems: p.acceptItems.filter((x) => x.id !== id) }));
 
-  // ---- Inspection items (ตรวจรับงานพร้อมรูป) ---------------------------------
-  const addInspection = () =>
-    setDoc((p) => ({ ...p, inspectionItems: [...p.inspectionItems, { id: uid("in_"), name: "", fileId: "", result: "", note: "" }] }));
-  const updateInspection = (id: string, patch: Partial<InspectionItem>) =>
-    setDoc((p) => ({ ...p, inspectionItems: p.inspectionItems.map((x) => (x.id === id ? { ...x, ...patch } : x)) }));
-  const removeInspection = (id: string) =>
-    setDoc((p) => ({ ...p, inspectionItems: p.inspectionItems.filter((x) => x.id !== id) }));
-
   // ---- Save -------------------------------------------------------------------
   const handleSave = async () => {
     if (!doc.projectName.trim()) {
@@ -565,41 +556,6 @@ export default function HandoverEditClient({ session }: Props) {
               ☐ ผ่าน &nbsp;&nbsp; ☐ ไม่ผ่าน (ระบุเหตุผล) &nbsp;·&nbsp; ลูกค้าจะเลือกผลและกรอกหมายเหตุเองในหน้าตรวจรับ
             </div>
           )}
-        </SectionCard>
-
-        {/* 5.1 Inspection items (ตรวจรับงานพร้อมรูป) */}
-        <SectionCard title="ตรวจรับงาน (พร้อมรูป)" desc="แต่ละจุด: ใส่ชื่อส่วนที่ตรวจ · ถ่ายรูป/แนบรูป · เลือกผ่าน/ไม่ผ่าน · ใส่หมายเหตุ · เพิ่มได้เรื่อย ๆ">
-          <div className="space-y-4">
-            {doc.inspectionItems.map((x, i) => (
-              <div key={x.id} className="border border-gray-200 rounded-xl p-4 relative">
-                <button type="button" onClick={() => removeInspection(x.id)} className={"absolute top-3 right-3 " + iconBtn}>{xIcon}</button>
-                <h4 className="text-xs font-semibold text-gray-500 mb-3">จุดที่ {i + 1}</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="label">รูปประกอบ</label>
-                    <ImageUpload camera fileId={x.fileId} onChange={(id) => updateInspection(x.id, { fileId: id })} hint="ถ่ายรูปหรือแนบรูปจุดที่ตรวจ" />
-                  </div>
-                  <div>
-                    <label className="label">ส่วนที่ตรวจ</label>
-                    <input value={x.name} onChange={(e) => updateInspection(x.id, { name: e.target.value })} className="input-field" placeholder="เช่น ห้องน้ำชั้น 2 / ผนังห้องนอน" />
-                    <label className="label mt-3">ผลการตรวจ</label>
-                    <ChoiceToggle
-                      className="w-full"
-                      value={x.result}
-                      onChange={(v) => updateInspection(x.id, { result: v as "" | "pass" | "fail" })}
-                      options={[
-                        { value: "pass", label: "ผ่าน", activeClass: "bg-green-600 text-white" },
-                        { value: "fail", label: "ไม่ผ่าน", activeClass: "bg-red-600 text-white" },
-                      ]}
-                    />
-                    <label className="label mt-3">หมายเหตุ</label>
-                    <input value={x.note} onChange={(e) => updateInspection(x.id, { note: e.target.value })} className="input-field" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button type="button" onClick={addInspection} className="btn-secondary w-full mt-4">+ เพิ่มจุดตรวจรับ</button>
         </SectionCard>
 
         {/* 6. Assets / keys */}
