@@ -1,4 +1,23 @@
 [
-  { "name": "Admin", "pin": "111111", "role": "admin" },
-  { "name": "User", "pin": "222222", "role": "user" }
+  {
+    "name": "Admin",
+    "pin": "111111",
+    "permissions": [
+      "managePins",
+      "viewApplications",
+      "viewHandover",
+      "createHandover",
+      "viewClientLinks"
+    ]
+  },
+  {
+    "name": "User",
+    "pin": "222222",
+    "permissions": [
+      "managePins",
+      "viewApplications",
+      "viewHandover",
+      "createHandover"
+    ]
+  }
 ]
