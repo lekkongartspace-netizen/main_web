@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { MAX_FILE_BYTES, MAX_FILE_MB } from "@/lib/uploadLimits";
 
 export const runtime = "nodejs";
@@ -88,8 +88,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!(await requirePermission("viewApplications"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
 
@@ -109,8 +108,7 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!(await requirePermission("viewApplications"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
 
@@ -189,8 +187,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!(await requirePermission("viewApplications"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
 

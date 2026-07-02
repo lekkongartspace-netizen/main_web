@@ -4,6 +4,6 @@ import ApplicationsClient from "./ApplicationsClient";
 
 export default async function ApplicationsPage() {
   const session = await getSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session || !session.perms.includes("viewApplications")) redirect("/");
   return <ApplicationsClient session={session} />;
 }

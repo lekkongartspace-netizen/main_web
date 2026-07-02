@@ -4,6 +4,6 @@ import EditClient from "./EditClient";
 
 export default async function EditPage() {
   const session = await getSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session || !session.perms.includes("viewApplications")) redirect("/");
   return <EditClient session={session} />;
 }

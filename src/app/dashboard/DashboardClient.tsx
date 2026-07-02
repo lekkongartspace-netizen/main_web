@@ -2,9 +2,10 @@
 
 import Navbar from "@/components/Navbar";
 import InactivityGuard from "@/components/InactivityGuard";
+import type { SessionInfo } from "@/lib/permissions";
 
 interface Props {
-  session: { name: string; role: "admin" | "user" } | null;
+  session: SessionInfo | null;
 }
 
 const scopeItems = [
@@ -19,7 +20,8 @@ const buildings = [
 ];
 
 export default function DashboardClient({ session }: Props) {
-  const isAdmin = session?.role === "admin";
+  const can = (perm: SessionInfo["perms"][number]) => !!session?.perms.includes(perm);
+  const canSeeHandoverAdmin = can("viewHandover") || can("createHandover");
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -45,26 +47,26 @@ export default function DashboardClient({ session }: Props) {
             <p className="text-sm text-gray-500 mt-1">กรอกใบสมัครพนักงานใหม่</p>
           </a>
 
-          {isAdmin && (
-            <>
-              <a href="/admin" className="card-hover group cursor-pointer">
-                <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center mb-3 group-hover:bg-brand-red transition-colors duration-300">
-                  <span className="text-xl group-hover:brightness-0 group-hover:invert transition-all">🔐</span>
-                </div>
-                <h3 className="font-semibold text-gray-900">จัดการ PIN</h3>
-                <p className="text-sm text-gray-500 mt-1">เพิ่ม ลบ แก้ไข PIN ผู้ใช้</p>
-              </a>
-              <a href="/admin/applications" className="card-hover group cursor-pointer">
-                <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center mb-3 group-hover:bg-brand-red transition-colors duration-300">
-                  <span className="text-xl group-hover:brightness-0 group-hover:invert transition-all">📋</span>
-                </div>
-                <h3 className="font-semibold text-gray-900">ดูใบสมัคร</h3>
-                <p className="text-sm text-gray-500 mt-1">ดูรายการใบสมัครทั้งหมด</p>
-              </a>
-            </>
+          {can("managePins") && (
+            <a href="/admin" className="card-hover group cursor-pointer">
+              <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center mb-3 group-hover:bg-brand-red transition-colors duration-300">
+                <span className="text-xl group-hover:brightness-0 group-hover:invert transition-all">🔐</span>
+              </div>
+              <h3 className="font-semibold text-gray-900">จัดการ PIN</h3>
+              <p className="text-sm text-gray-500 mt-1">เพิ่ม ลบ แก้ไข PIN ผู้ใช้</p>
+            </a>
+          )}
+          {can("viewApplications") && (
+            <a href="/admin/applications" className="card-hover group cursor-pointer">
+              <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center mb-3 group-hover:bg-brand-red transition-colors duration-300">
+                <span className="text-xl group-hover:brightness-0 group-hover:invert transition-all">📋</span>
+              </div>
+              <h3 className="font-semibold text-gray-900">ดูใบสมัคร</h3>
+              <p className="text-sm text-gray-500 mt-1">ดูรายการใบสมัครทั้งหมด</p>
+            </a>
           )}
 
-          {isAdmin ? (
+          {canSeeHandoverAdmin ? (
             <a href="/admin/handover" className="card-hover group cursor-pointer bg-gradient-to-br from-brand-red to-brand-darkred text-white">
               <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center mb-3">
                 <span className="text-xl">🏠</span>

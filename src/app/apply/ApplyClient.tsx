@@ -8,9 +8,10 @@ import SaveOverlay from "@/components/SaveOverlay";
 import { calcAge } from "@/lib/calcAge";
 import InactivityGuard from "@/components/InactivityGuard";
 import { validateFile, MAX_TOTAL_BYTES, MAX_TOTAL_MB } from "@/lib/uploadLimits";
+import type { SessionInfo } from "@/lib/permissions";
 
 interface Props {
-  session: { name: string; role: "admin" | "user" } | null;
+  session: SessionInfo | null;
 }
 
 interface WorkHistory {

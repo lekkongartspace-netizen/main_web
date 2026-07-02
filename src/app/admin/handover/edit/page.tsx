@@ -4,6 +4,6 @@ import HandoverEditClient from "./HandoverEditClient";
 
 export default async function HandoverEditPage() {
   const session = await getSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session || !session.perms.includes("createHandover")) redirect("/");
   return <HandoverEditClient session={session} />;
 }

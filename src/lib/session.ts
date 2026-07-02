@@ -2,10 +2,9 @@
 // same code runs in both the Node.js runtime (route handlers / server
 // components) and the Edge runtime (middleware).
 
-export interface Session {
-  name: string;
-  role: "admin" | "user";
-}
+import { ALL_PERMISSIONS, type Permission, type SessionInfo } from "./permissions";
+
+export type Session = SessionInfo;
 
 function toBase64Url(bytes: Uint8Array): string {
   let bin = "";
@@ -54,12 +53,11 @@ export async function verifySession(token: string): Promise<Session | null> {
     );
     if (!valid) return null;
     const data = JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
-    if (
-      data &&
-      typeof data.name === "string" &&
-      (data.role === "admin" || data.role === "user")
-    ) {
-      return data as Session;
+    if (data && typeof data.name === "string" && Array.isArray(data.perms)) {
+      const perms = (data.perms as unknown[]).filter((p): p is Permission =>
+        ALL_PERMISSIONS.includes(p as Permission)
+      );
+      return { name: data.name, perms };
     }
     return null;
   } catch {

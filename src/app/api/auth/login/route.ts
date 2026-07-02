@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyPin } from "@/lib/github";
 import { setSession } from "@/lib/auth";
+import { resolvePermissions } from "@/lib/permissions";
 
 export const runtime = "nodejs";
 
@@ -52,9 +53,10 @@ export async function POST(req: NextRequest) {
     // Successful login clears the throttle for this IP.
     attempts.delete(ip);
 
-    await setSession(user.name, user.role);
+    const perms = resolvePermissions(user);
+    await setSession(user.name, perms);
 
-    return NextResponse.json({ name: user.name, role: user.role });
+    return NextResponse.json({ name: user.name, perms });
   } catch (err) {
     console.error("Login error:", err);
     return NextResponse.json({ error: "เกิดข้อผิดพลาดในระบบ" }, { status: 500 });

@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Spinner from "@/components/Spinner";
 import InactivityGuard from "@/components/InactivityGuard";
 import { calcAge } from "@/lib/calcAge";
+import type { SessionInfo } from "@/lib/permissions";
 
 interface Application {
   id: string;
@@ -51,7 +52,7 @@ interface Application {
 }
 
 interface Props {
-  session: { name: string; role: "admin" | "user" };
+  session: SessionInfo;
 }
 
 function parseJson(val: unknown): unknown {

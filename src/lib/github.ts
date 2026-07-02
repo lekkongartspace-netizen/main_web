@@ -1,9 +1,14 @@
+import type { Permission } from "./permissions";
+
 const GITHUB_API = "https://api.github.com";
 
 interface PinEntry {
   name: string;
   pin: string;
-  role: "admin" | "user";
+  // Current model: explicit per-PIN permissions. `role` is kept optional only so
+  // legacy entries saved before this feature still parse (migrated on read).
+  permissions?: Permission[];
+  role?: "admin" | "user";
 }
 
 function decodeBase64(str: string): string {

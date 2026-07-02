@@ -25,9 +25,10 @@ import {
   Deliverable,
   AppendixItem,
 } from "@/lib/handoverTypes";
+import type { SessionInfo } from "@/lib/permissions";
 
 interface Props {
-  session: { name: string; role: "admin" | "user" };
+  session: SessionInfo;
 }
 
 async function uploadOne(file: File): Promise<string> {

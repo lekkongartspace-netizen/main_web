@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { MAX_FILE_BYTES, MAX_FILE_MB } from "@/lib/uploadLimits";
 
 export const runtime = "nodejs";
@@ -18,8 +18,7 @@ function isGoogleDriveReady(): boolean {
 // image per request keeps every request comfortably under Vercel's body limit;
 // images are also compressed in the browser before reaching here. Admin only.
 export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session || session.role !== "admin") {
+  if (!(await requirePermission("createHandover"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
   if (!isGoogleDriveReady()) {

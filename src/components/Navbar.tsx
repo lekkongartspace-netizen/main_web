@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PinInput from "@/components/PinInput";
+import type { SessionInfo } from "@/lib/permissions";
 
 interface NavbarProps {
-  session: { name: string; role: "admin" | "user" } | null;
+  session: SessionInfo | null;
 }
 
 export default function Navbar({ session }: NavbarProps) {
@@ -16,7 +17,7 @@ export default function Navbar({ session }: NavbarProps) {
   const [loginError, setLoginError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
 
-  const isAdmin = session?.role === "admin";
+  const can = (perm: SessionInfo["perms"][number]) => !!session?.perms.includes(perm);
 
   const handleLogin = async (pin: string) => {
     setLoginLoading(true);
@@ -51,13 +52,9 @@ export default function Navbar({ session }: NavbarProps) {
   const navLinks = [
     { href: "/", label: "หน้าหลัก" },
     { href: "/apply", label: "สมัครงาน" },
-    ...(isAdmin
-      ? [
-          { href: "/admin", label: "จัดการ PIN" },
-          { href: "/admin/applications", label: "ใบสมัคร" },
-          { href: "/admin/handover", label: "ส่งมอบงาน" },
-        ]
-      : []),
+    ...(can("managePins") ? [{ href: "/admin", label: "จัดการ PIN" }] : []),
+    ...(can("viewApplications") ? [{ href: "/admin/applications", label: "ใบสมัคร" }] : []),
+    ...(can("viewHandover") ? [{ href: "/admin/handover", label: "ส่งมอบงาน" }] : []),
   ];
 
   return (
@@ -121,7 +118,6 @@ export default function Navbar({ session }: NavbarProps) {
                       <span className="text-brand-red text-xs font-bold">{session.name.charAt(0).toUpperCase()}</span>
                     </div>
                     <span className="text-sm text-gray-600">{session.name}</span>
-                    <span className="text-xs bg-brand-light text-brand-red px-2 py-0.5 rounded-full font-medium">{session.role}</span>
                   </div>
                   <button onClick={handleLogout} className="btn-ghost text-sm">ออกจากระบบ</button>
                 </>
@@ -153,7 +149,6 @@ export default function Navbar({ session }: NavbarProps) {
                     <span className="text-brand-red text-xs font-bold">{session.name.charAt(0).toUpperCase()}</span>
                   </div>
                   <span className="text-sm text-gray-600">{session.name}</span>
-                  <span className="text-xs bg-brand-light text-brand-red px-2 py-0.5 rounded-full font-medium">{session.role}</span>
                 </div>
               )}
               {navLinks.map((link) => (

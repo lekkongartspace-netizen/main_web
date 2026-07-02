@@ -5,15 +5,17 @@ import Navbar from "@/components/Navbar";
 import Spinner from "@/components/Spinner";
 import SaveOverlay from "@/components/SaveOverlay";
 import InactivityGuard from "@/components/InactivityGuard";
+import Toggle from "@/components/Toggle";
+import { PERMISSIONS, type Permission, type SessionInfo } from "@/lib/permissions";
 
 interface Pin {
   name: string;
   pin: string;
-  role: "admin" | "user";
+  permissions: Permission[];
 }
 
 interface Props {
-  session: { name: string; role: "admin" | "user" };
+  session: SessionInfo;
 }
 
 export default function AdminPinsClient({ session }: Props) {
@@ -25,6 +27,8 @@ export default function AdminPinsClient({ session }: Props) {
   const [success, setSuccess] = useState("");
 
   const isDirty = JSON.stringify(pins) !== originalPins;
+  // Mirrors the server-side safeguard: someone must always be able to manage PINs.
+  const noManager = pins.length > 0 && !pins.some((p) => p.permissions.includes("managePins"));
 
   useEffect(() => {
     loadPins();
@@ -51,8 +55,13 @@ export default function AdminPinsClient({ session }: Props) {
       const res = await fetch("/api/pins");
       if (!res.ok) throw new Error("Failed to load");
       const data = await res.json();
-      setPins(data);
-      setOriginalPins(JSON.stringify(data));
+      const normalized: Pin[] = (Array.isArray(data) ? data : []).map((p) => ({
+        name: p.name ?? "",
+        pin: p.pin ?? "",
+        permissions: Array.isArray(p.permissions) ? p.permissions : [],
+      }));
+      setPins(normalized);
+      setOriginalPins(JSON.stringify(normalized));
     } catch {
       setError("ไม่สามารถโหลดข้อมูลได้");
     } finally {
@@ -83,17 +92,26 @@ export default function AdminPinsClient({ session }: Props) {
   };
 
   const addPin = () => {
-    const newPin: Pin = { name: "", pin: "", role: "user" };
-    setPins([...pins, newPin]);
+    setPins([...pins, { name: "", pin: "", permissions: [] }]);
   };
 
   const removePin = (idx: number) => {
     setPins(pins.filter((_, i) => i !== idx));
   };
 
-  const updatePin = (idx: number, key: keyof Pin, val: string) => {
+  const updatePin = (idx: number, key: "name" | "pin", val: string) => {
     const updated = [...pins];
-    updated[idx] = { ...updated[idx], [key]: key === "role" ? val as "admin" | "user" : val };
+    updated[idx] = { ...updated[idx], [key]: val };
+    setPins(updated);
+  };
+
+  const togglePerm = (idx: number, perm: Permission, on: boolean) => {
+    const updated = [...pins];
+    const current = updated[idx].permissions;
+    updated[idx] = {
+      ...updated[idx],
+      permissions: on ? [...current, perm] : current.filter((p) => p !== perm),
+    };
     setPins(updated);
   };
 
@@ -107,7 +125,7 @@ export default function AdminPinsClient({ session }: Props) {
         <div className="flex items-center justify-between mb-8 slide-up">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">จัดการ PIN</h1>
-            <p className="text-gray-500 mt-1">เพิ่ม ลบ แก้ไข PIN ผู้ใช้งานระบบ</p>
+            <p className="text-gray-500 mt-1">เพิ่ม ลบ แก้ไข PIN และกำหนดสิทธิ์การใช้งาน</p>
           </div>
           <button onClick={addPin} className="btn-primary">+ เพิ่ม PIN</button>
         </div>
@@ -115,9 +133,15 @@ export default function AdminPinsClient({ session }: Props) {
         {isDirty && (
           <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-6 fade-in text-sm flex items-center justify-between gap-4">
             <span>⚠️ การเปลี่ยนแปลงยังไม่ได้บันทึก</span>
-            <button onClick={handleSave} className="btn-primary text-sm px-4 py-1.5">
+            <button onClick={handleSave} disabled={noManager} className="btn-primary text-sm px-4 py-1.5 disabled:opacity-50">
               บันทึก
             </button>
+          </div>
+        )}
+
+        {noManager && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 fade-in text-sm">
+            ต้องมีอย่างน้อย 1 PIN ที่เปิดสิทธิ์ “จัดการ PIN” มิฉะนั้นจะไม่มีใครแก้ไขหน้านี้ได้อีก
           </div>
         )}
 
@@ -138,46 +162,57 @@ export default function AdminPinsClient({ session }: Props) {
         ) : (
           <div className="space-y-4 slide-up">
             {pins.map((p, idx) => (
-              <div key={idx} className="card flex flex-col sm:flex-row gap-4 items-start sm:items-end relative group">
-                <div className="flex-1 w-full">
-                  <label className="label">ชื่อ</label>
-                  <input
-                    value={p.name}
-                    onChange={(e) => updatePin(idx, "name", e.target.value)}
-                    className="input-field"
-                    placeholder="ชื่อผู้ใช้"
-                  />
-                </div>
-                <div className="w-full sm:w-40">
-                  <label className="label">PIN</label>
-                  <input
-                    value={p.pin}
-                    onChange={(e) => updatePin(idx, "pin", e.target.value.replace(/\D/g, ""))}
-                    className="input-field font-mono tracking-widest"
-                    placeholder="123456"
-                    maxLength={6}
-                  />
-                </div>
-                <div className="w-full sm:w-36">
-                  <label className="label">สิทธิ์</label>
-                  <select
-                    value={p.role}
-                    onChange={(e) => updatePin(idx, "role", e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="user">User</option>
-                  </select>
-                </div>
+              <div key={idx} className="card relative">
                 <button
                   type="button"
                   onClick={() => removePin(idx)}
-                  className="absolute top-3 right-3 sm:relative sm:top-auto sm:right-auto text-gray-400 hover:text-red-500 transition-colors p-1"
+                  className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors p-1"
+                  aria-label="ลบ PIN"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
+
+                <div className="flex flex-col sm:flex-row gap-4 pr-8">
+                  <div className="flex-1 w-full">
+                    <label className="label">ชื่อ</label>
+                    <input
+                      value={p.name}
+                      onChange={(e) => updatePin(idx, "name", e.target.value)}
+                      className="input-field"
+                      placeholder="ชื่อผู้ใช้"
+                    />
+                  </div>
+                  <div className="w-full sm:w-40">
+                    <label className="label">PIN</label>
+                    <input
+                      value={p.pin}
+                      onChange={(e) => updatePin(idx, "pin", e.target.value.replace(/\D/g, ""))}
+                      className="input-field font-mono tracking-widest"
+                      placeholder="123456"
+                      maxLength={6}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="label mb-3">สิทธิ์การใช้งาน</p>
+                  <div className="space-y-3">
+                    {PERMISSIONS.map((perm) => (
+                      <div key={perm.key} className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-800">{perm.label}</p>
+                          <p className="text-xs text-gray-400">{perm.desc}</p>
+                        </div>
+                        <Toggle
+                          checked={p.permissions.includes(perm.key)}
+                          onChange={(on) => togglePerm(idx, perm.key, on)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             ))}
 
@@ -190,7 +225,7 @@ export default function AdminPinsClient({ session }: Props) {
 
             {pins.length > 0 && (
               <div className="flex justify-end pt-4">
-                <button onClick={handleSave} className="btn-primary">
+                <button onClick={handleSave} disabled={noManager} className="btn-primary disabled:opacity-50">
                   บันทึกการเปลี่ยนแปลง
                 </button>
               </div>

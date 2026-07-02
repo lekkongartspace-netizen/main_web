@@ -4,6 +4,6 @@ import AdminPinsClient from "./AdminPinsClient";
 
 export default async function AdminPage() {
   const session = await getSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session || !session.perms.includes("managePins")) redirect("/");
   return <AdminPinsClient session={session} />;
 }

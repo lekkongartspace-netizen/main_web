@@ -4,6 +4,6 @@ import HandoverListClient from "./HandoverListClient";
 
 export default async function HandoverPage() {
   const session = await getSession();
-  if (!session || session.role !== "admin") redirect("/");
+  if (!session || !session.perms.includes("viewHandover")) redirect("/");
   return <HandoverListClient session={session} />;
 }

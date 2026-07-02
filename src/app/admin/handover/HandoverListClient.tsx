@@ -5,9 +5,10 @@ import Navbar from "@/components/Navbar";
 import Spinner from "@/components/Spinner";
 import InactivityGuard from "@/components/InactivityGuard";
 import { HandoverDoc, STATUS_LABELS, formatThaiDate, HandoverStatus } from "@/lib/handoverTypes";
+import type { SessionInfo } from "@/lib/permissions";
 
 interface Props {
-  session: { name: string; role: "admin" | "user" };
+  session: SessionInfo;
 }
 
 const STATUS_STYLE: Record<HandoverStatus, string> = {
@@ -23,6 +24,8 @@ function shareUrl(doc: HandoverDoc): string {
 }
 
 export default function HandoverListClient({ session }: Props) {
+  const canCreate = session.perms.includes("createHandover");
+  const canSeeLinks = session.perms.includes("viewClientLinks");
   const [docs, setDocs] = useState<HandoverDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -91,9 +94,11 @@ export default function HandoverListClient({ session }: Props) {
               Project Handover {docs.length > 0 ? "(" + docs.length + " รายการ)" : ""}
             </p>
           </div>
-          <a href="/admin/handover/edit" className="btn-primary text-center whitespace-nowrap">
-            + สร้างเอกสารใหม่
-          </a>
+          {canCreate && (
+            <a href="/admin/handover/edit" className="btn-primary text-center whitespace-nowrap">
+              + สร้างเอกสารใหม่
+            </a>
+          )}
         </div>
 
         {error && (
@@ -161,24 +166,30 @@ export default function HandoverListClient({ session }: Props) {
                       >
                         เปิด / พิมพ์ PDF
                       </a>
-                      <button
-                        onClick={() => copyLink(doc)}
-                        className="text-xs font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-lg px-3 py-1.5 transition-colors"
-                      >
-                        {copiedId === doc.id ? "✓ คัดลอกแล้ว" : "คัดลอกลิงก์ลูกค้า"}
-                      </button>
-                      <a
-                        href={"/admin/handover/edit?id=" + doc.id}
-                        className="text-xs font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-lg px-3 py-1.5 transition-colors"
-                      >
-                        แก้ไข
-                      </a>
-                      <button
-                        onClick={() => setConfirmId(doc.id)}
-                        className="text-xs font-medium text-red-500 border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1.5 transition-colors"
-                      >
-                        ลบ
-                      </button>
+                      {canSeeLinks && (
+                        <button
+                          onClick={() => copyLink(doc)}
+                          className="text-xs font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-lg px-3 py-1.5 transition-colors"
+                        >
+                          {copiedId === doc.id ? "✓ คัดลอกแล้ว" : "คัดลอกลิงก์ลูกค้า"}
+                        </button>
+                      )}
+                      {canCreate && (
+                        <a
+                          href={"/admin/handover/edit?id=" + doc.id}
+                          className="text-xs font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-lg px-3 py-1.5 transition-colors"
+                        >
+                          แก้ไข
+                        </a>
+                      )}
+                      {canCreate && (
+                        <button
+                          onClick={() => setConfirmId(doc.id)}
+                          className="text-xs font-medium text-red-500 border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1.5 transition-colors"
+                        >
+                          ลบ
+                        </button>
+                      )}
                     </div>
 
                     {confirmId === doc.id && (

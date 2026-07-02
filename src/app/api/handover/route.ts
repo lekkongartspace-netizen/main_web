@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
 import { driveErrorMessage } from "@/lib/driveError";
 
 export const runtime = "nodejs";
@@ -11,12 +11,6 @@ function isGoogleDriveReady(): boolean {
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN || "";
   const folder = process.env.GOOGLE_DRIVE_FOLDER_ID || "";
   return clientId.length > 5 && clientSecret.length > 5 && refreshToken.length > 10 && folder.length > 5;
-}
-
-async function requireAdmin() {
-  const session = await getSession();
-  if (!session || session.role !== "admin") return false;
-  return true;
 }
 
 function randomId(): string {
@@ -48,9 +42,9 @@ function collectFileIds(doc: Record<string, unknown>): string[] {
   return ids;
 }
 
-// GET — list all handover documents (admin only).
+// GET — list all handover documents (requires "ดูเอกสารส่งมอบงาน").
 export async function GET() {
-  if (!(await requireAdmin())) {
+  if (!(await requirePermission("viewHandover"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
   if (!isGoogleDriveReady()) return NextResponse.json([]);
@@ -64,9 +58,9 @@ export async function GET() {
   }
 }
 
-// POST — create a new handover document (admin only).
+// POST — create a new handover document (requires "สร้างเอกสารส่งมอบงาน").
 export async function POST(req: NextRequest) {
-  if (!(await requireAdmin())) {
+  if (!(await requirePermission("createHandover"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
   if (!isGoogleDriveReady()) {
@@ -98,9 +92,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT — update an existing handover document (admin only).
+// PUT — update an existing handover document (requires "สร้างเอกสารส่งมอบงาน").
 export async function PUT(req: NextRequest) {
-  if (!(await requireAdmin())) {
+  if (!(await requirePermission("createHandover"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
   if (!isGoogleDriveReady()) {
@@ -137,9 +131,9 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE — remove a document and its uploaded photos (admin only).
+// DELETE — remove a document and its uploaded photos (requires "สร้างเอกสารส่งมอบงาน").
 export async function DELETE(req: NextRequest) {
-  if (!(await requireAdmin())) {
+  if (!(await requirePermission("createHandover"))) {
     return NextResponse.json({ error: "ไม่มีสิทธิ์เข้าถึง" }, { status: 403 });
   }
   if (!isGoogleDriveReady()) {
