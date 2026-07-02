@@ -169,6 +169,8 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
   const [clientReason, setClientReason] = useState(doc.clientReason || "");
   const [clientNote, setClientNote] = useState(doc.clientNote || "");
   const [clientSignature, setClientSignature] = useState(doc.clientSignature || "");
+  const [clientSignDate, setClientSignDate] = useState(doc.clientSignDate || "");
+  const [submittedAt, setSubmittedAt] = useState(doc.clientSubmittedAt || "");
   const [checked, setChecked] = useState<Record<string, boolean>>(doc.clientChecked || {});
   const [inspection, setInspection] = useState<InspectionItem[]>(doc.inspectionItems || []);
   const [acceptList, setAcceptList] = useState<AcceptItem[]>(doc.acceptItems || []);
@@ -186,7 +188,19 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
   const updateAcceptDetail = (id: string, patch: Partial<AcceptDetail>) =>
     setAcceptDetails((p) => ({ ...p, [id]: { ...detailOf(id), ...patch } }));
 
-  const toggle = (id: string) => editing && setChecked((p) => ({ ...p, [id]: !p[id] }));
+  const toggle = (id: string) => {
+    if (!editing) return;
+    const willBeOn = !checked[id];
+    setChecked((p) => ({ ...p, [id]: willBeOn }));
+    // Unticking hides the detail form, so drop its data (photo/result/note)
+    // instead of silently submitting orphaned values for an unchecked item.
+    if (!willBeOn) {
+      setAcceptDetails((p) => {
+        const { [id]: _removed, ...rest } = p;
+        return rest;
+      });
+    }
+  };
   const handlePrint = () => window.print();
 
   const handleSubmit = async () => {
@@ -194,6 +208,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
     if (!clientResult) return alert("กรุณาเลือกผลการตรวจรับ (ผ่าน / ไม่ผ่าน)");
     if (!clientSignature) return alert("กรุณาเซ็นชื่อ");
     setSending(true);
+    const signDate = new Date().toISOString();
     try {
       const res = await fetch("/api/handover/submit", {
         method: "POST",
@@ -210,11 +225,15 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
           acceptItems: acceptList,
           clientAcceptDetails: acceptDetails,
           inspectionItems: inspection,
-          clientSignDate: new Date().toISOString(),
+          clientSignDate: signDate,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "ส่งไม่สำเร็จ");
+      // Reflect the just-submitted timestamps in the view (the `doc` prop is
+      // stale until a reload) so the date and "ส่งเมื่อ" line show immediately.
+      setClientSignDate(signDate);
+      setSubmittedAt(new Date().toISOString());
       setSubmitted(true);
       setEditing(false);
     } catch (err) {
@@ -615,7 +634,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
                     <div className="h-20 flex items-center justify-center text-gray-300 text-sm">—</div>
                   )}
                   <p className="text-sm text-gray-900 font-medium mt-2">{clientName || "—"}</p>
-                  <p className="text-xs text-gray-400">วันที่: {formatThaiDate(doc.clientSignDate) || "—"}</p>
+                  <p className="text-xs text-gray-400">วันที่: {formatThaiDate(clientSignDate) || "—"}</p>
                 </div>
               )}
             </div>
@@ -636,7 +655,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
                     </a>
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={handoverImageUrl(a.fileId)} alt={a.caption} className="w-full h-44 object-cover" />
+                    <img src={handoverImageUrl(a.fileId)} alt={a.caption} className="w-full h-44 object-contain bg-gray-50" />
                   )}
                   {a.caption && <p className="text-xs text-gray-600 px-3 py-2 bg-gray-50">{a.caption}</p>}
                 </div>
@@ -651,7 +670,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
             <PageHead title="ผังโครงการ (Site Overview)" />
             {doc.siteImageFileId && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={handoverImageUrl(doc.siteImageFileId)} alt="ผังโครงการ" className="w-full rounded-xl border border-gray-100 mb-5 object-cover" />
+              <img src={handoverImageUrl(doc.siteImageFileId)} alt="ผังโครงการ" className="w-full rounded-xl border border-gray-100 mb-5 object-contain bg-gray-50" />
             )}
             <div className="divide-y divide-gray-100">
               {doc.buildings.map((b, i) => (
@@ -678,7 +697,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
                 <div key={b.id} className="hv-avoid-break border border-gray-100 rounded-xl overflow-hidden">
                   {b.imageFileId && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={handoverImageUrl(b.imageFileId)} alt={b.name} className="w-full h-56 object-cover" />
+                    <img src={handoverImageUrl(b.imageFileId)} alt={b.name} className="w-full h-56 object-contain bg-gray-50" />
                   )}
                   <div className="p-4">
                     <div className="flex items-center justify-between">
@@ -708,7 +727,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
               {doc.detailImages.filter((d) => d.fileId).map((d) => (
                 <div key={d.id} className="hv-avoid-break rounded-xl overflow-hidden border border-gray-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={handoverImageUrl(d.fileId)} alt={d.caption} className="w-full h-44 object-cover" />
+                  <img src={handoverImageUrl(d.fileId)} alt={d.caption} className="w-full h-44 object-contain bg-gray-50" />
                   {d.caption && <p className="text-xs text-gray-600 px-3 py-2 bg-gray-50">{d.caption}</p>}
                 </div>
               ))}
@@ -736,7 +755,7 @@ export default function HandoverDocumentClient({ doc, token }: Props) {
               <p className={"font-bold text-lg " + (clientResult === "fail" ? "text-red-700" : "text-green-700")}>
                 {clientResult === "fail" ? "บันทึกผล: ไม่ผ่าน" : "✅ ตรวจรับงานเรียบร้อยแล้ว ขอบคุณครับ"}
               </p>
-              {doc.clientSubmittedAt && <p className="text-xs text-gray-500 mt-1">ส่งเมื่อ {formatThaiDate(doc.clientSubmittedAt)}</p>}
+              {submittedAt && <p className="text-xs text-gray-500 mt-1">ส่งเมื่อ {formatThaiDate(submittedAt)}</p>}
               <button onClick={() => { setEditing(true); setSubmitted(false); }} className="btn-ghost text-sm mt-3">แก้ไขผลการตรวจรับ</button>
             </div>
           ) : (
